@@ -290,14 +290,16 @@ select { width:100%; padding:9px 10px; font:inherit; font-size:15px; border:1px 
   <div class="settings-row" id="silentRow"><div><b>무음 모드에서도 소리</b><p>켜 두면 폰으로 듣던 음악이 멈출 수 있어요</p></div><div class="seg" id="setSilent"></div></div>
   <div class="settings-row" id="vibRow"><div><b>진동</b><p>구간이 바뀔 때</p></div><div class="seg" id="setVib"></div></div>
   <p class="ver" id="ver"></p>
+  <p class="ver" id="diag" style="margin-top:2px;font-family:var(--font-body)"></p>
   <p class="ver" style="margin-top:2px">© Dongkyu Kim</p>
 </div></div>
 <div id="edit" class="panel" role="dialog" aria-modal="true" hidden><div class="sheet" id="editSheet"></div></div>
 <div id="toast"></div>
+<div id="sap" style="position:fixed;top:0;left:0;visibility:hidden;pointer-events:none;padding:env(safe-area-inset-top) env(safe-area-inset-right) env(safe-area-inset-bottom) env(safe-area-inset-left)"></div>
 <button type="button" id="upd" class="upd" hidden>새 버전이 있습니다 · 눌러서 새로고침</button>
 
 <script>
-const APP_VERSION = '26.11.06-5';                                      // 올릴 때마다 version.json · sw.js 와 같이 올린다
+const APP_VERSION = '26.11.06-6';                                      // 올릴 때마다 version.json · sw.js 와 같이 올린다
 const $ = s => document.querySelector(s);
 const esc = s => String(s).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
 const copy = o => JSON.parse(JSON.stringify(o));
@@ -636,7 +638,7 @@ const ACT = {
   play: toggle,
   reset,
   edit: openEdit,
-  settings: () => showPanel('#settings', true),
+  settings: () => { showPanel('#settings', true); diag(); },
   closeSettings: () => showPanel('#settings', false),
   theme: () => setTheme(THEMES[(THEMES.indexOf(theme) + 1) % THEMES.length]),
   tryVoice: () => { unlockAudio(); say('운동'); },
@@ -698,15 +700,14 @@ function layout() {
   if (LAND.matches) { L.append($('#resetBtn'), $('.ttl')); top.insertBefore($('#curLab'), R); R.append($('#play')); go.prepend($('#nxtWord')); go.append($('#nxt')); }
   else { top.insertBefore($('.ttl'), R); R.prepend($('#resetBtn')); $('#cur').prepend($('#curLab')); go.prepend($('#play')); $('#app').insertBefore($('#nxt'), $('.ctl')); }
 }
-// 아이폰 홈 화면 앱은 세로일 때 상태 막대 높이만큼 화면을 짧게 잡아 바닥에 빈 띠가 생긴다. 실제 화면보다 짧으면 화면 높이로 늘린다 (아이폰·패드만)
-function fitHeight() {
-  const land = LAND.matches, W = Math.max(screen.width, screen.height), N = Math.min(screen.width, screen.height);
-  const H = land ? N : W, gap = H - innerHeight;
-  $('#app').style.height = navigator.standalone && gap > 0 && gap < 120 && Math.abs(innerWidth - (land ? W : N)) < 2 ? H + 'px' : '';
+// 임시 진단: 실기기 화면 크기를 설정 시트 맨 아래에 보여 준다 (바닥 여백 원인 찾은 뒤 지운다)
+function diag() {
+  const sa = getComputedStyle($('#sap')), r = $('#app').getBoundingClientRect(), vv = window.visualViewport || {};
+  $('#diag').textContent = `win ${innerWidth}x${innerHeight} scr ${screen.width}x${screen.height} vv ${Math.round(vv.width)}x${Math.round(vv.height)} doc ${document.documentElement.clientHeight} app ${Math.round(r.height)} sa ${parseInt(sa.paddingTop)}/${parseInt(sa.paddingBottom)}/${parseInt(sa.paddingLeft)} st ${navigator.standalone}`;
 }
-LAND.addEventListener('change', () => { layout(); fitHeight(); });
-addEventListener('resize', fitHeight);
-layout(); fitHeight();
+LAND.addEventListener('change', () => { layout(); setTimeout(diag, 400); });
+addEventListener('resize', () => setTimeout(diag, 100));
+layout(); diag();
 
 setTheme(theme); setColor(color); draw();
 
