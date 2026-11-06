@@ -314,7 +314,7 @@ select { width:100%; padding:9px 10px; font:inherit; font-size:15px; border:1px 
 <button type="button" id="upd" class="upd" hidden>새 버전이 있습니다 · 눌러서 새로고침</button>
 
 <script>
-const APP_VERSION = '26.11.06-11';                                      // 올릴 때마다 version.json · sw.js 와 같이 올린다
+const APP_VERSION = '26.11.06-12';                                      // 올릴 때마다 version.json · sw.js 와 같이 올린다
 const $ = s => document.querySelector(s);
 const esc = s => String(s).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
 const copy = o => JSON.parse(JSON.stringify(o));
@@ -588,15 +588,12 @@ function setTheme(t) {
   try { localStorage.setItem('wod-theme', t); } catch (e) {}
   syncBar();
 }
-// 상태 막대(다이나믹 아일랜드 줄) 색 = 위 바 색. iOS 26 홈 화면 앱은 theme-color 대신 맨 위 가운데의 고정 요소(#app) 배경색을 쓰고,
-// 맨 위에 새 층이 생길 때만 다시 읽는다. 그래서 테마를 바꾸면 12px 띠(10px 넘어야 읽힘)를 잠깐 올렸다 내리고,
-// 그래도 안 바뀌는 경우를 위해 설정을 닫을 때 앱을 한 번 새로 연다 (closeSettings). 안드로이드는 theme-color 를 쓴다
+// 상태 막대(다이나믹 아일랜드 줄) 색 = 위 바 색. iOS 26 홈 화면 앱은 theme-color 대신 맨 위 가운데의 고정 요소(#app) 배경색을 쓰고
+// 색이 바뀌어도 다시 읽지 않아서, 설정을 닫을 때 앱을 한 번 새로 연다 (showPanel). 안드로이드는 theme-color 를 쓴다.
+// 다시 읽게 하려고 맨 위에 띠를 올리던 방법은 제목 글씨를 덮고 깜빡여서 뺐다
 function syncBar() {
   const v = getComputedStyle(document.documentElement).getPropertyValue('--bg-top').trim();
   document.querySelectorAll('meta[name="theme-color"]').forEach(m => { m.removeAttribute('media'); m.content = v; });
-  const s = document.createElement('div');
-  s.style.cssText = `position:fixed;top:0;left:0;right:0;height:12px;z-index:99;pointer-events:none;background:${v}`;
-  document.body.append(s); setTimeout(() => s.remove(), 600);
 }
 matchMedia('(prefers-color-scheme: dark)').addEventListener('change', syncBar);   // '기기 설정에 맞춤'일 때 폰이 밝기/어둡기를 바꾸면
 // 테마 색: 도시메트리 캘린더와 같은 16가지. 새 색 = 여기 한 줄 + CSS :root[data-color="…"] 블록
