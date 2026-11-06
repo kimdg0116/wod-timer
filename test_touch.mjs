@@ -10,10 +10,12 @@ for (const [name, engine] of [['webkit', webkit], ['chromium', chromium]].filter
     const context = await browser.newContext({ viewport: { width: 402, height: 874 }, isMobile: true, hasTouch: true, serviceWorkers: 'block' });
     const page = await context.newPage();
     const errors = []; page.on('pageerror', e => errors.push(e.message));
+    const failedActions = []; page.on('console', m => { if (m.type() === 'error') failedActions.push(m.text()); });
     await page.route('**/*', route => route.request().resourceType() === 'document'
       ? route.fulfill({ contentType: 'text/html', body: source }) : route.abort());
     await page.goto('https://wod-test.invalid/');
     await page.evaluate(() => { S.set.sound = false; S.set.vib = false; });
+    await page.evaluate(() => { window.originalParents = [...document.querySelectorAll('#app [id]')].map(el => [el, el.parentElement]); });
     const tap = async () => {
       const r = await page.locator('#play:visible, #playLand:visible').boundingBox(); assert.ok(r);
       await page.touchscreen.tap(r.x + r.width / 2, r.y + r.height / 2);
@@ -57,6 +59,7 @@ for (const [name, engine] of [['webkit', webkit], ['chromium', chromium]].filter
           await page.setViewportSize({ width: 402, height: 874 });
           await page.waitForTimeout(settle);
           assert.equal(await page.evaluate(() => T.run), true, '세로 복귀까지 실행 유지');
+          assert.equal(await page.evaluate(() => originalParents.every(([el, parent]) => el.parentElement === parent && el.isConnected)), true, '회전 시 모든 화면 요소의 부모와 실제 노드 유지');
         }
         assert.equal(await page.evaluate(() => document.querySelector('#play').parentElement.className), parent, '회전 후에도 버튼 부모 유지');
         const b = await page.locator('#play').boundingBox();
@@ -99,6 +102,17 @@ for (const [name, engine] of [['webkit', webkit], ['chromium', chromium]].filter
       await page.locator(`[data-tab="${mode}"]`).tap();
       assert.equal(await page.evaluate(() => S.mode), mode, `${name} reset then switch ${mode}`);
     }
+    // 회전 뒤 설정 열기·닫기, 시간 편집까지 실제 버튼으로 조작한다.
+    await page.locator('[data-act="settings"]').tap();
+    assert.equal(await page.locator('#settings').isVisible(), true);
+    await page.locator('[data-act="closeSettings"]').tap();
+    await page.locator('#editBtn').tap();
+    assert.equal(await page.locator('#edit').isVisible(), true);
+    await page.locator('[data-k="work"]').tap();
+    assert.equal(await page.locator('#wm').isVisible(), true);
+    await page.locator('[data-act="pickBack"]').tap();
+    await page.locator('[data-act="editCancel"]').tap();
+    assert.equal(await page.locator('#edit').isVisible(), false);
     // 실행 중 다른 탭으로 이동하면 원래 타이머는 멈춘 위치를 유지한다.
     await page.evaluate(() => { reset(); S.mode = 'tabata'; draw(); });
     await tap();

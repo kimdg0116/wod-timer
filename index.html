@@ -18,10 +18,7 @@
 <link rel="preload" href="https://cdn.jsdelivr.net/gh/sun-typeface/SUIT@2.0.5/fonts/variable/woff2/SUIT-Variable.woff2" as="font" type="font/woff2" crossorigin>
 <link rel="preload" href="https://cdn.jsdelivr.net/npm/@fontsource-variable/oswald@5.1.1/files/oswald-latin-wght-normal.woff2" as="font" type="font/woff2" crossorigin>
 <script>if (/Android/i.test(navigator.userAgent)) document.documentElement.classList.add('android');
-// 393보다 좁은 폰(갤럭시 360·384)은 393 폭으로 그린 뒤 줄인다. 접는 폰은 폭이 바뀔 때마다 다시
-{ const fit = () => { const m = document.querySelector('meta[name=viewport]'), v = screen.width < 393 ? 'width=393, user-scalable=no, viewport-fit=cover'
-    : 'width=device-width, initial-scale=1, minimum-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover'; if (m.content !== v) m.content = v; };
-  fit(); addEventListener('resize', fit); }
+// 화면 폭은 기기의 기본 viewport를 따른다. 회전 중 viewport 메타를 다시 쓰지 않는다.
 try {                                                                  // 테마 색·화면 모드는 첫 화면부터. 타이머라 처음엔 어둡게
   const c = localStorage.getItem('wod-color') || 'charcoal', t = localStorage.getItem('wod-theme') || 'dark';   // 같은 주소의 다른 앱과 섞이지 않게 이 앱만의 칸
   if (c !== 'blue') document.documentElement.dataset.color = c;
@@ -142,11 +139,11 @@ body { margin:0; overflow:hidden; overscroll-behavior-y:none; -webkit-user-selec
   font:16px/1.5 var(--font-body); background:var(--bg-top); color:var(--fg); letter-spacing:-.01em; }
 input, textarea { -webkit-user-select:text; user-select:text; }
 [hidden] { display:none !important; }
-button { font-family:inherit; color:inherit; cursor:pointer; }
+button { font-family:inherit; color:inherit; cursor:pointer; touch-action:manipulation; }
 button svg { pointer-events:none; }   /* 아이콘 대신 버튼이 누름을 받는다 */
-#play { touch-action:none; flex-shrink:0; }
-.tabs button { touch-action:none; }   /* 버튼 위의 작은 손 떨림을 스크롤로 처리하지 않는다 */
-#playLand { touch-action:none; flex-shrink:0; display:none; }
+#play { flex-shrink:0; }
+   /* 버튼 위의 작은 손 떨림을 스크롤로 처리하지 않는다 */
+#playLand { flex-shrink:0; display:none; }
 #resetLand { display:none; }
 body.run .upd { display:none; }       /* 운동 중엔 새 버전 버튼이 버튼을 가리지 않게 */
 @font-face { font-family:Oswald; src:url(https://cdn.jsdelivr.net/npm/@fontsource-variable/oswald@5.1.1/files/oswald-latin-wght-normal.woff2) format("woff2-variations"); font-weight:200 700; font-display:block; }
@@ -159,8 +156,8 @@ body.run .upd { display:none; }       /* 운동 중엔 새 버전 버튼이 버�
 :root { --sl:env(safe-area-inset-left, 0px); --sr:env(safe-area-inset-right, 0px); --st:env(safe-area-inset-top, 0px); --sb:env(safe-area-inset-bottom, 0px);
   --ib:clamp(42px, 6vmin, 60px); --t1:clamp(17px, 2.4vmin, 26px); --sn:clamp(54px, 9vmin, 120px); --s2:clamp(15px, 2.1vmin, 24px);
   --play:clamp(86px, 13vmin, 170px); --ti:clamp(24px, 3.4vmin, 34px); --tf:clamp(11.5px, 1.6vmin, 16px); }
-#app { position:fixed; inset:0; background:var(--bg-top); display:grid; grid-template-columns:minmax(0, 1fr);   /* iOS 26 상태 막대는 맨 위 고정 요소(#app)의 배경색을 쓴다 */
-  grid-template-rows:auto minmax(0, 1fr) clamp(84px, 14dvh, 220px) auto auto; grid-template-areas:"top" "cur" "nxt" "ctl" "tabs"; }
+#app { position:relative; width:100%; height:100dvh; isolation:isolate; background:var(--bg-top); display:grid; grid-template-columns:minmax(0, 1fr) auto minmax(0, 1fr);
+  grid-template-rows:auto minmax(0, 1fr) clamp(84px, 14dvh, 220px) auto auto; grid-template-areas:"top top top" "cur cur cur" "nxt nxt nxt" "r go y" "tabs tabs tabs"; }
 .top { grid-area:top; background:var(--bg-top); display:grid; grid-template-columns:1fr auto 1fr; align-items:center; gap:8px; padding:calc(6px + var(--st)) max(12px, var(--sr)) 8px max(12px, var(--sl)); }
 .top .r { display:flex; justify-content:flex-end; gap:6px; }
 .ibtn { display:grid; place-items:center; width:var(--ib); height:var(--ib); padding:0; border:0; border-radius:50%; background:none; color:var(--acc); }
@@ -182,11 +179,15 @@ body.run .upd { display:none; }       /* 운동 중엔 새 버전 버튼이 버�
 #cur.long .dig { font-size:min(30cqw, 50cqh); }
 #nxt .lab { font-size:min(5.6cqw, 23cqh); font-weight:700; }
 #nxt .dig { font-size:min(17cqw, 54cqh); }
-.ctl { grid-area:ctl; display:grid; grid-template-columns:1fr auto 1fr; align-items:center; padding:12px max(12px, var(--sr)) 6px max(12px, var(--sl)); }
+.ctl { display:contents; }
+#statR { grid-area:r; }
+#statY { grid-area:y; }
+#statR, #statY { align-self:center; }
+#curLabLand { display:none; }
 .stat { text-align:center; min-width:0; }
 .stat b { display:block; font-family:var(--num); font-size:var(--sn); font-weight:600; line-height:1; color:color-mix(in srgb, var(--pc) var(--pcw), var(--fg)); }
 .stat span { display:block; margin-top:6px; font-size:var(--s2); font-weight:700; white-space:nowrap; }
-.go { display:flex; flex-direction:column; align-items:center; gap:4px; }
+.go { grid-area:go; display:flex; flex-direction:column; align-items:center; gap:4px; padding:12px 0 6px; }
 .play { display:grid; place-items:center; width:var(--play); height:var(--play); padding:0; border:0; border-radius:50%; background:var(--pc); color:var(--ink);
   box-shadow:inset 0 0 0 calc(var(--play) * .07) var(--pc), inset 0 0 0 calc(var(--play) * .105) var(--ink); }
 .play svg { width:40%; height:40%; }
@@ -201,28 +202,28 @@ body.run .upd { display:none; }       /* 운동 중엔 새 버전 버튼이 버�
    위는 얇은 머리줄(제목·총 시간 | 구간 이름 | 시작), 아래는 차콜 띠 하나(남은 라운드 | 다음 구간 칩 | 남은 사이클).
    탭·설정·편집은 숨긴다 (바꾸려면 세로로). 조작 버튼은 회전 때 DOM에서 옮기지 않는다 */
 @media (orientation:landscape) {
-  #play, #resetBtn { display:none !important; }
+  #play, #resetBtn, .tabs, .top [data-act=settings], #editBtn, #playLab, #curLab, .go { display:none !important; }
   #playLand, #resetLand:not([hidden]) { display:grid; }
-  #app { grid-template-rows:auto minmax(0, 1fr) auto; grid-template-areas:"top" "cur" "ctl"; background:var(--now); color:var(--ink); }
-  .tabs, .top [data-act=settings], #editBtn, #playLab { display:none !important; }
-  .top { grid-template-columns:1fr auto 1fr; padding:max(8px, var(--st)) 16px 0; background:none; }
-  .top .l { display:flex; align-items:center; gap:2.4vh; min-width:0; }
-  .ttl { display:flex; align-items:baseline; gap:.35em; text-align:left; color:var(--ink); opacity:.62; }
-  .ttl b, .ttl span { font-size:4.6vh; color:inherit; }
+  #app { grid-template-columns:1fr 2.6fr 1fr; grid-template-rows:auto minmax(0, 1fr) calc(18dvh + var(--sb) * .4); grid-template-areas:"top top top" "cur cur cur" "r nxt y"; background:var(--now); color:var(--ink); }
+  #app::after { content:''; grid-area:3/1/4/4; background:var(--bg-top); z-index:0; pointer-events:none; }
+  .top, #cur, #nxt, .stat { z-index:1; }
+  .top { grid-template-columns:1fr auto 1fr; padding:max(8px, var(--st)) max(16px, var(--sr)) 0 max(16px, var(--sl)); background:none; }
+  .top .l { grid-area:1/1; }
+  .ttl { grid-area:1/1; justify-self:start; display:flex; align-items:baseline; gap:.35em; opacity:.62; color:var(--ink); }
+  .ttl b, .ttl span { font-size:4.6dvh; color:inherit; }
   .ttl span { font-family:var(--num); font-weight:600; }
-  .top .lab { max-width:none; overflow:visible; font-size:12vh; line-height:1.05; color:var(--ink); }
-  .top .r { justify-content:flex-end; }
-  .top .ibtn.ring, .top .play { width:13vh; height:13vh; background:var(--bg-top); color:var(--now); box-shadow:none; }
+  #curLabLand { display:block; grid-area:1/2; max-width:none; font-size:12dvh; line-height:1.05; }
+  .top .r { grid-area:1/3; }
+  .top .ibtn.ring, .top .play { width:13dvh; height:13dvh; background:var(--bg-top); color:var(--now); box-shadow:none; }
   .top .play svg { width:40%; height:40%; }
   #cur { padding:0 var(--sr) 0 var(--sl); background:none; }
-  #cur .dig { font-size:min(37cqw, 90cqh); margin-bottom:5cqh; }   /* Oswald 숫자는 줄 상자 아래쪽에 앉아서 조금 올린다 */
+  #cur .dig { font-size:min(37cqw, 90cqh); margin-bottom:5cqh; }
   #cur.long .dig { font-size:min(29cqw, 92cqh); }
-  .ctl { grid-template-columns:1fr 2.6fr 1fr; height:calc(18vh + var(--sb) * .4); padding:0 max(8px, var(--sr)) calc(var(--sb) * .4) max(8px, var(--sl)); background:var(--bg-top); color:var(--fg); }
-  .stat b { font-size:12vh; line-height:.95; }
-  .stat span { margin-top:.4vh; font-size:2.8vh; color:var(--mute); }
-  .go { display:flex; align-items:stretch; height:100%; padding:1.8vh 0; }
-  #nxt { flex:1; flex-direction:row; align-items:center; justify-content:center; gap:2.4vh; border-radius:1.8vh; }
-  #nxt::before { content:'다음'; font-size:3.4vh; font-weight:700; opacity:.6; }
+  .stat { align-self:stretch !important; display:flex; flex-direction:column; justify-content:center; padding-bottom:calc(var(--sb) * .4); }
+  .stat b { font-size:12dvh; line-height:.95; }
+  .stat span { margin-top:.4dvh; font-size:2.8dvh; color:var(--mute); }
+  #nxt { margin:1.8dvh 0 calc(1.8dvh + var(--sb) * .4); flex-direction:row; gap:2.4dvh; border-radius:1.8dvh; }
+  #nxt::before { content:'다음'; font-size:3.4dvh; font-weight:700; opacity:.6; }
   #nxt.off::before { content:none; }
   #nxt .lab { max-width:none; font-size:min(50cqh, 7cqw); }
   #nxt .dig { font-size:min(60cqh, 9cqw); }
@@ -298,6 +299,7 @@ select { width:100%; padding:9px 10px; font:inherit; font-size:15px; border:1px 
   <div class="top">
     <div class="l"><button type="button" class="ibtn" data-act="settings" aria-label="설정 열기"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 1 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 1 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 1 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 1 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg></button></div>
     <div class="ttl"><b id="mname"></b><span id="total" class="num"></span></div>
+    <div class="lab" id="curLabLand" aria-hidden="true"></div>
     <div class="r">
       <button type="button" class="ibtn ring" id="resetBtn" data-act="reset" aria-label="처음으로 되돌리기" hidden><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3.5 12a8.5 8.5 0 1 0 2.6-6.1L3.5 8.5"/><path d="M3.5 3.5v5h5"/></svg></button>
       <button type="button" class="ibtn ring" id="resetLand" data-act="reset" aria-label="처음으로 되돌리기" hidden><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3.5 12a8.5 8.5 0 1 0 2.6-6.1L3.5 8.5"/><path d="M3.5 3.5v5h5"/></svg></button>
@@ -335,7 +337,7 @@ select { width:100%; padding:9px 10px; font:inherit; font-size:15px; border:1px 
 <button type="button" id="upd" class="upd" hidden>새 버전이 있습니다 · 눌러서 새로고침</button>
 
 <script>
-const APP_VERSION = '26.11.07-1';                                      // 올릴 때마다 version.json · sw.js 와 같이 올린다
+const APP_VERSION = '26.11.07-2';                                      // 올릴 때마다 version.json · sw.js 와 같이 올린다
 const $ = s => document.querySelector(s);
 const esc = s => String(s).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
 const copy = o => JSON.parse(JSON.stringify(o));
@@ -464,7 +466,7 @@ function draw() {
   document.body.classList.toggle('going', !!(T && T.run));
   text($('#mname'), M.name);
   text($('#total'), S.mode === 'stopwatch' ? '' : fmt(done ? total : Math.ceil(total - e)));
-  const pane = (id, lab, dig, pc) => { const p = $(id); p.classList.toggle('off', !pc); p.style.setProperty('--pc', pc || ''); text($(id + 'Lab'), lab); put($(id + 'Dig'), dig.replace(/\d/g, '<i>$&</i>')); };
+  const pane = (id, lab, dig, pc) => { const p = $(id); p.classList.toggle('off', !pc); p.style.setProperty('--pc', pc || ''); text($(id + 'Lab'), lab); if (id === '#cur') text($('#curLabLand'), lab); put($(id + 'Dig'), dig.replace(/\d/g, '<i>$&</i>')); };
   let curPc = '';
   if (done) { curPc = colOf(c, 'work'); pane('#cur', '완료', fmt(total || e), curPc); pane('#nxt', '처음부터 다시 하려면 시작', '', ''); }
   else if (!s) { pane('#cur', '시간을 정해 주세요', '00:00', ''); pane('#nxt', '오른쪽 위 버튼으로 바꿔요', '', ''); }
@@ -738,37 +740,7 @@ const ACT = {
   askDel: b => { E.del = b.dataset.id; drawEdit(); },                  // 휴지통 한 번 = 확인 버튼, 그걸 누르면 지운다 (confirm() 창도 안 쓴다)
   delSaved: b => { const t = S.saved.find(x => x.id === b.dataset.id); if (!t) return; S.saved = S.saved.filter(x => x !== t); save(); E.del = null; drawEdit(); toast(`'${t.name}' 지움`); },
 };
-// 시작·일시정지: iOS의 지연 click 대신 손가락을 뗄 때 처리한다.
-// 구간 전환 중에도 같은 버튼이 포인터를 유지한다. 끌기·취소·다중 터치는 실행하지 않는다.
-function bindTap(button, activate) {
-  let press = null, ignoreClickUntil = 0;
-  button.addEventListener('pointerdown', ev => {
-    if (ev.pointerType === 'mouse') return;
-    ignoreClickUntil = 0;   // 새 터치는 이전 터치의 중복 click 억제와 무관하다
-    if (!ev.isPrimary || press) { press = null; return; }
-    press = { id: ev.pointerId, x: ev.clientX, y: ev.clientY, moved: false };
-    button.setPointerCapture(ev.pointerId);
-  });
-  button.addEventListener('pointermove', ev => {
-    if (press && press.id === ev.pointerId && Math.hypot(ev.clientX - press.x, ev.clientY - press.y) > 16) press.moved = true;
-  });
-  button.addEventListener('pointerup', ev => {
-    if (!press || press.id !== ev.pointerId) return;
-    const p = press; press = null; ignoreClickUntil = performance.now() + 800;
-    ev.preventDefault();
-    const r = button.getBoundingClientRect();
-    if (!p.moved && ev.clientX >= r.left && ev.clientX <= r.right && ev.clientY >= r.top && ev.clientY <= r.bottom) activate();
-  });
-  button.addEventListener('pointercancel', () => { press = null; });
-  button.addEventListener('lostpointercapture', () => { press = null; });
-  button.addEventListener('click', ev => {
-    // touch 뒤 자동 click이 한 번 더 실행돼 곧바로 재시작하는 것을 막는다. 키보드·보조기술 click은 유지.
-    if (ev.detail > 0 && performance.now() < ignoreClickUntil) {
-      ev.preventDefault(); ev.stopImmediatePropagation();
-    }
-  });
-}
-for (const button of [$('#play'), $('#playLand')]) bindTap(button, toggle);
+// 모든 조작은 기본 button click 한 경로로 처리한다. 회전 중 포인터 캡처 상태를 보관하지 않는다.
 document.addEventListener('click', ev => {
   const b = ev.target.closest('[data-act],[data-tab],[data-set],[data-kind],[data-pickcolor],[data-pc]');
   if (!b) { if (ev.target.classList.contains('panel')) back(); return; }
@@ -804,33 +776,8 @@ document.addEventListener('visibilitychange', () => {
 // 아이폰은 앱을 나갔다 오면 소리를 '중단됨'으로 두고, 터치 없이는 다시 못 켠다. 아무 데나 처음 닿을 때 깨운다
 addEventListener('pointerdown', () => { resumeAudio(); }, { passive: true });
 
-/* ── 가로·세로 배치: 구간 이름과 다음 구간만 옮긴다. 조작 버튼은 각 방향의 고정 자리를 쓴다 ── */
-const LAND = matchMedia('(orientation: landscape)');
-function layout() {
-  const top = $('.top'), L = $('.top .l'), R = $('.top .r'), go = $('.go');
-  if (LAND.matches) { L.append($('.ttl')); top.insertBefore($('#curLab'), R); go.append($('#nxt')); }
-  else { top.insertBefore($('.ttl'), R); $('#cur').prepend($('#curLab')); $('#app').insertBefore($('#nxt'), $('.ctl')); }
-}
-LAND.addEventListener('change', layout);
-layout();
-
+// 화면 회전은 CSS만 처리한다. DOM 이동·viewport 재작성·전역 touch 취소는 하지 않는다.
 setTheme(theme); setColor(color); draw();
-for (const tab of $('#tabs').children) bindTap(tab, () => switchMode(tab.dataset.tab));
-
-// ── 확대 막기: 두 손가락 핀치, 빈 곳 더블탭 (도시메트리 캘린더·웬들러와 같은 방식) ──
-(() => {
-  const stop = e => e.preventDefault();
-  ['gesturestart', 'gesturechange', 'gestureend'].forEach(t => document.addEventListener(t, stop, { passive: false }));
-  // 두 손가락: 시작부터 막는다 (갤럭시는 touchmove 만 막으면 일부 영역에서 확대가 시작됨)
-  ['touchstart', 'touchmove'].forEach(t => document.addEventListener(t, e => { if (e.touches && e.touches.length > 1) e.preventDefault(); }, { passive: false }));
-  let lastEnd = 0;
-  document.addEventListener('touchend', e => {
-    const now = Date.now(), onControl = e.target.closest && e.target.closest('button,input,textarea,select,label,a,summary,.wheel');
-    if (!onControl && now - lastEnd < 350) e.preventDefault();
-    lastEnd = now;
-  }, { passive: false });
-  document.addEventListener('dblclick', stop, { passive: false });
-})();
 
 // ── 새 버전 안내: version.json 과 비교해서 다르면 버튼. 누르면 오프라인 보관본을 비우고 새로 받는다 ──
 (() => {
