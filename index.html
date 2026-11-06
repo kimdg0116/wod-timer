@@ -6,6 +6,7 @@
 <title>WOD 타이머</title>
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="mobile-web-app-capable" content="yes">
+<meta name="google" content="notranslate">
 <!-- 상태 막대 태그는 넣지 않는다: black-translucent 는 iOS 26 홈 화면 앱 바닥 62pt 를 비우고, black 은 늘 검정. 없으면 불투명 막대가 페이지 맨 위 색을 따른다 (syncBar) -->
 <meta name="apple-mobile-web-app-title" content="WOD 타이머">
 <meta name="theme-color" content="#e8e9ea" media="(prefers-color-scheme: light)">
@@ -26,6 +27,16 @@ try {                                                                  // 테마
   if (c !== 'blue') document.documentElement.dataset.color = c;
   if (t === 'light' || t === 'dark') document.documentElement.dataset.theme = t;
 } catch (e) { document.documentElement.dataset.theme = 'dark'; document.documentElement.dataset.color = 'charcoal'; }
+// 도시메트리 캘린더와 같은 링크 열기 (?open=chrome / ?open=safari): 카톡·삼성 인터넷 등으로 열렸으면 크롬·사파리로 다시 연다 (홈 화면 설치가 되게). 주소의 표시는 지운다
+(() => {
+  const want = new URLSearchParams(location.search).get('open'), ua = navigator.userAgent, home = location.origin + location.pathname;
+  if (!want) return;
+  history.replaceState(null, '', home);
+  if (want === 'chrome' && /Android/i.test(ua) && (!/Chrome\//.test(ua) || /SamsungBrowser|EdgA|OPR|Whale|KAKAOTALK|NAVER|; wv\)/.test(ua)))
+    location.replace(`intent://${location.host}${location.pathname}#Intent;scheme=https;package=com.android.chrome;S.browser_fallback_url=${encodeURIComponent(home)};end`);
+  if (want === 'safari' && /iPhone|iPad/.test(ua) && /CriOS|FxiOS|EdgiOS|KAKAOTALK|NAVER|Whale/.test(ua))
+    location.replace('x-safari-' + home);                             // iOS 17 이상
+})();
 </script>
 <style>
 /* 색: 도시메트리 캘린더와 같은 토큰·테마 색 16가지 (SMC 디자인 가이드 3.0 기본 파랑) */
@@ -314,7 +325,7 @@ select { width:100%; padding:9px 10px; font:inherit; font-size:15px; border:1px 
 <button type="button" id="upd" class="upd" hidden>새 버전이 있습니다 · 눌러서 새로고침</button>
 
 <script>
-const APP_VERSION = '26.11.06-12';                                      // 올릴 때마다 version.json · sw.js 와 같이 올린다
+const APP_VERSION = '26.11.06-13';                                      // 올릴 때마다 version.json · sw.js 와 같이 올린다
 const $ = s => document.querySelector(s);
 const esc = s => String(s).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
 const copy = o => JSON.parse(JSON.stringify(o));
@@ -731,6 +742,21 @@ LAND.addEventListener('change', layout);
 layout();
 
 setTheme(theme); setColor(color); draw();
+
+// ── 확대 막기: 두 손가락 핀치, 빈 곳 더블탭 (도시메트리 캘린더·웬들러와 같은 방식) ──
+(() => {
+  const stop = e => e.preventDefault();
+  ['gesturestart', 'gesturechange', 'gestureend'].forEach(t => document.addEventListener(t, stop, { passive: false }));
+  // 두 손가락: 시작부터 막는다 (갤럭시는 touchmove 만 막으면 일부 영역에서 확대가 시작됨)
+  ['touchstart', 'touchmove'].forEach(t => document.addEventListener(t, e => { if (e.touches && e.touches.length > 1) e.preventDefault(); }, { passive: false }));
+  let lastEnd = 0;
+  document.addEventListener('touchend', e => {
+    const now = Date.now(), onControl = e.target.closest && e.target.closest('button,input,textarea,select,label,a,summary,.wheel');
+    if (!onControl && now - lastEnd < 350) e.preventDefault();
+    lastEnd = now;
+  }, { passive: false });
+  document.addEventListener('dblclick', stop, { passive: false });
+})();
 
 // ── 새 버전 안내: version.json 과 비교해서 다르면 버튼. 누르면 오프라인 보관본을 비우고 새로 받는다 ──
 (() => {
