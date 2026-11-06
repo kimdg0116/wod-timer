@@ -143,6 +143,8 @@ body { margin:0; overflow:hidden; overscroll-behavior-y:none; -webkit-user-selec
 input, textarea { -webkit-user-select:text; user-select:text; }
 [hidden] { display:none !important; }
 button { font-family:inherit; color:inherit; cursor:pointer; }
+button svg { pointer-events:none; }   /* 누른 곳이 늘 버튼이 되게 (아이콘이 바뀌어도 누름이 끊기지 않게) */
+body.run .upd { display:none; }       /* 운동 중엔 새 버전 버튼이 버튼을 가리지 않게 */
 @font-face { font-family:Oswald; src:url(https://cdn.jsdelivr.net/npm/@fontsource-variable/oswald@5.1.1/files/oswald-latin-wght-normal.woff2) format("woff2-variations"); font-weight:200 700; font-display:block; }
 @font-face { font-family:"SUIT Variable"; src:url(https://cdn.jsdelivr.net/gh/sun-typeface/SUIT@2.0.5/fonts/variable/woff2/SUIT-Variable.woff2) format("woff2-variations"); font-weight:100 900; font-display:block; }
 .num { font-family:var(--num); font-variant-numeric:tabular-nums; }
@@ -325,10 +327,12 @@ select { width:100%; padding:9px 10px; font:inherit; font-size:15px; border:1px 
 <button type="button" id="upd" class="upd" hidden>새 버전이 있습니다 · 눌러서 새로고침</button>
 
 <script>
-const APP_VERSION = '26.11.06-14';                                      // 올릴 때마다 version.json · sw.js 와 같이 올린다
+const APP_VERSION = '26.11.06-15';                                      // 올릴 때마다 version.json · sw.js 와 같이 올린다
 const $ = s => document.querySelector(s);
 const esc = s => String(s).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
 const copy = o => JSON.parse(JSON.stringify(o));
+// 바뀐 때만 다시 그린다. 운동 중엔 0.05초마다 그려서, 매번 새로 만들면 아이폰이 누르는 중이던 버튼의 누름을 버린다 (일시정지가 안 눌리던 버그)
+const put = (el, html) => { if (el._h !== html) { el._h = html; el.innerHTML = html; } };
 $('#ver').textContent = 'v' + APP_VERSION;
 
 /* plan:start ── 모드·항목 정의와 구간 목록. 모든 모드를 "구간 목록" 하나로 펼쳐 같은 엔진으로 돌린다 (test_plan.mjs 가 확인) */
@@ -441,7 +445,7 @@ function draw() {
   document.body.classList.toggle('going', !!(T && T.run));
   $('#mname').textContent = M.name;
   $('#total').textContent = S.mode === 'stopwatch' ? '' : fmt(done ? total : total - e);
-  const pane = (id, lab, dig, pc) => { const p = $(id); p.classList.toggle('off', !pc); p.style.setProperty('--pc', pc || ''); $(id + 'Lab').textContent = lab; $(id + 'Dig').innerHTML = dig.replace(/\d/g, '<i>$&</i>'); };
+  const pane = (id, lab, dig, pc) => { const p = $(id); p.classList.toggle('off', !pc); p.style.setProperty('--pc', pc || ''); $(id + 'Lab').textContent = lab; put($(id + 'Dig'), dig.replace(/\d/g, '<i>$&</i>')); };
   let curPc = '';
   if (done) { curPc = colOf(c, 'work'); pane('#cur', '완료', fmt(total || e), curPc); pane('#nxt', '처음부터 다시 하려면 시작', '', ''); }
   else if (!s) { pane('#cur', '시간을 정해 주세요', '00:00', ''); pane('#nxt', '오른쪽 위 버튼으로 바꿔요', '', ''); }
@@ -463,20 +467,24 @@ function draw() {
   const go = $('.go'), running = T && T.run;
   go.style.setProperty('--pc', curPc || colOf(c, 'prep'));
   $('#app').style.setProperty('--now', curPc || 'var(--card)');
-  $('#play').innerHTML = running ? ICON.pause : ICON.play;
+  put($('#play'), running ? ICON.pause : ICON.play);
   $('#play').setAttribute('aria-label', running ? '일시정지' : '시작');
   $('#playLab').textContent = done ? '다시 시작' : running ? '일시정지' : T ? '계속' : '시작';
   $('#resetBtn').hidden = !T || T.run; $('#editBtn').hidden = !!T;    // 되돌리기는 멈춘 뒤에만 (운동 중 잘못 눌러도 안 지워지게)
-  $('#tabs').innerHTML = Object.keys(MODES).map(m => `<button type="button" class="${m === S.mode ? 'on' : ''}" data-tab="${m}">${ICON[m]}${MODES[m].name}</button>`).join('');
+  put($('#tabs'), Object.keys(MODES).map(m => `<button type="button" class="${m === S.mode ? 'on' : ''}" data-tab="${m}">${ICON[m]}${MODES[m].name}</button>`).join(''));
 }
 
 /* ── 화면 켜 두기: 운동 중에는 폰 화면이 꺼지지 않게 ── */
-let lock = null;
-async function wake(on) {
+let lock = null, wantWake = false, asking = false;
+async function wake(on) {                                              // 요청이 끝나기 전에 멈춰도 (빠른 시작·일시정지) 풀리게 마지막 바람을 따른다
+  wantWake = on;
   try {
-    if (on && !lock && 'wakeLock' in navigator) { lock = await navigator.wakeLock.request('screen'); lock.addEventListener('release', () => { lock = null; }); }
-    else if (!on && lock) { const l = lock; lock = null; await l.release(); }
-  } catch (e) { lock = null; }
+    if (on && !lock && !asking && 'wakeLock' in navigator) {
+      asking = true; const l = await navigator.wakeLock.request('screen'); asking = false;
+      l.addEventListener('release', () => { if (lock === l) lock = null; });
+      if (wantWake) lock = l; else l.release();
+    } else if (!on && lock) { const l = lock; lock = null; await l.release(); }
+  } catch (e) { asking = false; lock = null; }
 }
 
 /* ── 소리: 파일 없이 Web Audio 로 만든다 (소리 파일이 따로 없는 게 정상).
@@ -730,6 +738,8 @@ document.addEventListener('visibilitychange', () => {
   if (AC && AC.state !== 'running') AC.resume().catch(() => {});
   frame();
 });
+// 아이폰은 앱을 나갔다 오면 소리를 '중단됨'으로 두고, 터치 없이는 다시 못 켠다. 아무 데나 처음 닿을 때 깨운다
+addEventListener('pointerdown', () => { if (AC && AC.state !== 'running') AC.resume().catch(() => {}); }, { passive: true });
 
 /* ── 가로·세로 배치: 가로에선 구간 이름·시작 버튼을 위 띠로, 다음 구간을 아래 띠로 옮긴다 (CSS 만으로는 못 옮김) ── */
 const LAND = matchMedia('(orientation: landscape)');

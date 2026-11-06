@@ -1,5 +1,5 @@
 /* WOD 타이머 - 오프라인 보관 (체육관에서 인터넷 없이도 열리게). 글꼴은 fonts-v1 에 따로 오래 보관 */
-var VERSION = "26.11.06-14";
+var VERSION = "26.11.06-15";
 var CACHE = "wod-timer-v" + VERSION;
 var CORE = ["./", "./index.html", "./manifest.webmanifest",
             "./apple-touch-icon.png", "./icon-192.png", "./icon-512.png"];
