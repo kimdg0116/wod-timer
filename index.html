@@ -6,7 +6,7 @@
 <title>WOD 타이머</title>
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="mobile-web-app-capable" content="yes">
-<meta name="apple-mobile-web-app-status-bar-style" content="black">
+<!-- 상태 막대 태그는 넣지 않는다: black-translucent 는 iOS 26 홈 화면 앱 바닥 62pt 를 비우고, black 은 늘 검정. 없으면 불투명 막대가 페이지 맨 위 색을 따른다 (syncBar) -->
 <meta name="apple-mobile-web-app-title" content="WOD 타이머">
 <meta name="theme-color" content="#e8e9ea" media="(prefers-color-scheme: light)">
 <meta name="theme-color" content="#1c1d20" media="(prefers-color-scheme: dark)">
@@ -107,6 +107,23 @@ try {                                                                  // 테마
   --gut:max(16px, calc((100vw - 400px) / 2)); --num:Oswald, "SUIT Variable", sans-serif; }
 @media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) { --pcw:100%; } }
 :root[data-theme="dark"] { --pcw:100%; }
+/* 테마 색마다 구간 색 4가지. 역할은 그대로 (노랑 계열 준비 · 초록 운동 · 빨강 휴식 · 파랑 쿨 다운),
+   온도·채도는 테마를 따르고 한 칸은 테마 색을 옅게 쓴 것. 검정 숫자 대비 6:1 이상. 차콜(기본)은 위 :root 의 TimerPlus 색 그대로 */
+:root:not([data-color])      { --py:#FFD54A; --pg:#4FE3A0; --pr:#FF6B6B; --pb:#6FA3FF; }   /* 파랑: 선명하고 깨끗하게 */
+:root[data-color="sky"]      { --py:#FFE680; --pg:#7FEBC0; --pr:#FF9494; --pb:#79CCF5; }   /* 스카이: 밝고 가볍게 */
+:root[data-color="navy"]     { --py:#F2C14E; --pg:#5FCB8E; --pr:#EE6A5F; --pb:#8AA9E6; }   /* 네이비: 깊게 */
+:root[data-color="cobalt"]   { --py:#FFE94D; --pg:#3EF0A0; --pr:#FF5C66; --pb:#7C9CFF; }   /* 코발트: 전기처럼 선명하게 */
+:root[data-color="mint"]     { --py:#F5E06A; --pg:#4FE0C0; --pr:#FF8E7A; --pb:#8CBDF2; }   /* 민트: 운동 칸이 민트 */
+:root[data-color="sage"]     { --py:#E5C76B; --pg:#A9CC9B; --pr:#DE8F76; --pb:#9DB8CC; }   /* 세이지: 황토·세이지·테라코타·슬레이트 */
+:root[data-color="teal"]     { --py:#F4D35E; --pg:#7EE0A8; --pr:#F2836B; --pb:#4FC4D9; }   /* 틸: 쿨 다운 칸이 틸 */
+:root[data-color="lavender"] { --py:#F7E39A; --pg:#A5E8C6; --pr:#F5A3B5; --pb:#AFA6F2; }   /* 라벤더: 파스텔 */
+:root[data-color="lilac"]    { --py:#F8DB9A; --pg:#B2E3B5; --pr:#F59AC0; --pb:#CDA8EE; }   /* 라일락: 분홍빛 파스텔 */
+:root[data-color="indigo"]   { --py:#FFD76E; --pg:#84E3B5; --pr:#FF8597; --pb:#9F98F7; }   /* 인디고: 진한 파스텔 */
+:root[data-color="coral"]    { --py:#FFD15C; --pg:#A3DB72; --pr:#FF8566; --pb:#74C3DE; }   /* 코랄: 휴식 칸이 코랄 */
+:root[data-color="apricot"]  { --py:#FFBE6A; --pg:#B9DB72; --pr:#F07B66; --pb:#82BEDA; }   /* 살구: 준비 칸이 살구 */
+:root[data-color="rose"]     { --py:#FFD27F; --pg:#94DDB4; --pr:#F5839E; --pb:#92B6F0; }   /* 로즈: 휴식 칸이 로즈 */
+:root[data-color="bluegray"] { --py:#E6D388; --pg:#9ACDB5; --pr:#E39A90; --pb:#9DB6D4; }   /* 블루 그레이: 차분하고 차갑게 */
+:root[data-color="warmgray"] { --py:#EBCB80; --pg:#A8C58C; --pr:#DD9A82; --pb:#B8C2CB; }   /* 웜 그레이: 따뜻한 셋 + 쿨 다운만 차가운 회청 (멀리서도 구분) */
 
 * { box-sizing:border-box; -webkit-tap-highlight-color:transparent; touch-action:pan-x pan-y; }
 html { overscroll-behavior-y:none; touch-action:pan-x pan-y; -webkit-text-size-adjust:100%; text-size-adjust:100%; background:var(--bg-top); }
@@ -127,7 +144,7 @@ button { font-family:inherit; color:inherit; cursor:pointer; }
   --play:clamp(86px, 13vmin, 170px); --ti:clamp(24px, 3.4vmin, 34px); --tf:clamp(11.5px, 1.6vmin, 16px); }
 #app { position:fixed; inset:0; display:grid; grid-template-columns:minmax(0, 1fr);
   grid-template-rows:auto minmax(0, 1fr) clamp(84px, 14dvh, 220px) auto auto; grid-template-areas:"top" "cur" "nxt" "ctl" "tabs"; }
-.top { grid-area:top; display:grid; grid-template-columns:1fr auto 1fr; align-items:center; gap:8px; padding:calc(6px + var(--st)) max(12px, var(--sr)) 8px max(12px, var(--sl)); }
+.top { grid-area:top; background:var(--bg-top); display:grid; grid-template-columns:1fr auto 1fr; align-items:center; gap:8px; padding:calc(6px + var(--st)) max(12px, var(--sr)) 8px max(12px, var(--sl)); }
 .top .r { display:flex; justify-content:flex-end; gap:6px; }
 .ibtn { display:grid; place-items:center; width:var(--ib); height:var(--ib); padding:0; border:0; border-radius:50%; background:none; color:var(--acc); }
 .ibtn svg { width:57%; height:57%; }
@@ -297,7 +314,7 @@ select { width:100%; padding:9px 10px; font:inherit; font-size:15px; border:1px 
 <button type="button" id="upd" class="upd" hidden>새 버전이 있습니다 · 눌러서 새로고침</button>
 
 <script>
-const APP_VERSION = '26.11.06-9';                                      // 올릴 때마다 version.json · sw.js 와 같이 올린다
+const APP_VERSION = '26.11.06-10';                                      // 올릴 때마다 version.json · sw.js 와 같이 올린다
 const $ = s => document.querySelector(s);
 const esc = s => String(s).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
 const copy = o => JSON.parse(JSON.stringify(o));
@@ -569,7 +586,18 @@ function setTheme(t) {
   $('#theme').innerHTML = THEME_ICON[t];
   $('#themeMode').textContent = { system: '기기 설정에 맞춤', light: '밝게', dark: '어둡게' }[t];
   try { localStorage.setItem('wod-theme', t); } catch (e) {}
+  syncBar();
 }
+// 상태 막대(다이나믹 아일랜드 줄) 색 = 위 바 색. iOS 26 홈 화면 앱은 theme-color 대신 페이지 맨 위 색을 쓰고,
+// 맨 위에 새 층이 생길 때만 다시 읽어서 테마를 바꾸면 얇은 띠를 잠깐 올렸다 내린다. 안드로이드는 theme-color 를 쓴다
+function syncBar() {
+  const v = getComputedStyle(document.documentElement).getPropertyValue('--bg-top').trim();
+  document.querySelectorAll('meta[name="theme-color"]').forEach(m => { m.removeAttribute('media'); m.content = v; });
+  const s = document.createElement('div');
+  s.style.cssText = `position:fixed;top:0;left:0;right:0;height:2px;z-index:99;pointer-events:none;background:${v}`;
+  document.body.append(s); setTimeout(() => s.remove(), 600);
+}
+matchMedia('(prefers-color-scheme: dark)').addEventListener('change', syncBar);   // '기기 설정에 맞춤'일 때 폰이 밝기/어둡기를 바꾸면
 // 테마 색: 도시메트리 캘린더와 같은 16가지. 새 색 = 여기 한 줄 + CSS :root[data-color="…"] 블록
 const COLORS = [
   { id: 'blue', name: '파랑 · 기본', dot: '#2e70ff', bar: ['#e3eeff', '#142039'] },
@@ -595,7 +623,7 @@ function setColor(id) {
   const c = COLORS.find(c => c.id === id) || COLORS[0];
   color = c.id;
   if (c.id === 'blue') delete document.documentElement.dataset.color; else document.documentElement.dataset.color = c.id;
-  document.querySelectorAll('meta[name="theme-color"]').forEach((m, k) => { m.content = c.bar[k]; });
+  syncBar();
   $('#colorName').textContent = c.name;
   $('#colorPick').innerHTML = COLORS.map(x => `<button type="button" data-pickcolor="${x.id}" class="${x.id === c.id ? 'on' : ''}" style="--sw:${x.dot}" aria-label="${x.name}"></button>`).join('');
   try { localStorage.setItem('wod-color', c.id); } catch (e) {}
