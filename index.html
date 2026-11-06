@@ -156,11 +156,9 @@ body.run .upd { display:none; }       /* 운동 중엔 새 버전 버튼이 버�
 :root { --sl:env(safe-area-inset-left, 0px); --sr:env(safe-area-inset-right, 0px); --st:env(safe-area-inset-top, 0px); --sb:env(safe-area-inset-bottom, 0px);
   --ib:clamp(42px, 6vmin, 60px); --t1:clamp(17px, 2.4vmin, 26px); --sn:clamp(54px, 9vmin, 120px); --s2:clamp(15px, 2.1vmin, 24px);
   --play:clamp(86px, 13vmin, 170px); --ti:clamp(24px, 3.4vmin, 34px); --tf:clamp(11.5px, 1.6vmin, 16px); }
-#app { position:relative; width:100%; height:100dvh; isolation:isolate; background:var(--bg-top); display:grid; grid-template-columns:minmax(0, 1fr) auto minmax(0, 1fr);
+#app { position:fixed; inset:0; isolation:isolate; background:var(--bg-top); display:grid; grid-template-columns:minmax(0, 1fr) auto minmax(0, 1fr);
   grid-template-rows:auto minmax(0, 1fr) clamp(84px, 14dvh, 220px) auto auto; grid-template-areas:"top top top" "cur cur cur" "nxt nxt nxt" "r go y" "tabs tabs tabs"; }
 .top { grid-area:top; background:var(--bg-top); display:grid; grid-template-columns:1fr auto 1fr; align-items:center; gap:8px; padding:calc(6px + var(--st)) max(12px, var(--sr)) 8px max(12px, var(--sl)); }
-/* iOS 홈 화면 앱의 상태 막대는 화면 맨 위 고정 요소의 불투명한 색을 따른다. 조작 화면 자체는 고정하지 않는다. */
-.top::before { content:''; position:fixed; top:0; left:0; right:0; height:var(--st); background:var(--bg-top); pointer-events:none; z-index:2; }
 .top .r { display:flex; justify-content:flex-end; gap:6px; }
 .ibtn { display:grid; place-items:center; width:var(--ib); height:var(--ib); padding:0; border:0; border-radius:50%; background:none; color:var(--acc); }
 .ibtn svg { width:57%; height:57%; }
@@ -210,7 +208,6 @@ body.run .upd { display:none; }       /* 운동 중엔 새 버전 버튼이 버�
   #app::after { content:''; grid-area:3/1/4/4; background:var(--bg-top); z-index:0; pointer-events:none; }
   .top, #cur, #nxt, .stat { z-index:1; }
   .top { grid-template-columns:1fr auto 1fr; padding:max(8px, var(--st)) max(16px, var(--sr)) 0 max(16px, var(--sl)); background:none; }
-  .top::before { background:var(--now); }
   .top .l { grid-area:1/1; }
   .ttl { grid-area:1/1; justify-self:start; display:flex; align-items:baseline; gap:.35em; opacity:.62; color:var(--ink); }
   .ttl b, .ttl span { font-size:4.6dvh; color:inherit; }
@@ -340,7 +337,7 @@ select { width:100%; padding:9px 10px; font:inherit; font-size:15px; border:1px 
 <button type="button" id="upd" class="upd" hidden>새 버전이 있습니다 · 눌러서 새로고침</button>
 
 <script>
-const APP_VERSION = '26.11.07-3';                                      // 올릴 때마다 version.json · sw.js 와 같이 올린다
+const APP_VERSION = '26.11.07-4';                                      // 올릴 때마다 version.json · sw.js 와 같이 올린다
 const $ = s => document.querySelector(s);
 const esc = s => String(s).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
 const copy = o => JSON.parse(JSON.stringify(o));
@@ -646,7 +643,7 @@ function setTheme(t) {
   try { localStorage.setItem('wod-theme', t); } catch (e) {}
   syncBar();
 }
-// 상태 막대(다이나믹 아일랜드 줄) 색 = 위 바 색. iOS 26 홈 화면 앱은 theme-color 대신 맨 위 고정 요소(.top::before) 배경색을 쓰고
+// 상태 막대(다이나믹 아일랜드 줄) 색 = 위 바 색. iOS 26 홈 화면 앱은 theme-color 대신 맨 위 고정 요소(#app) 배경색을 쓰고
 // 색이 바뀌어도 다시 읽지 않아서, 설정을 닫을 때 앱을 한 번 새로 연다 (showPanel). 안드로이드는 theme-color 를 쓴다.
 // 색을 다시 읽게 하려고 띠를 잠깐 올리던 방법은 제목 글씨를 덮고 깜빡여서 뺐다
 function syncBar() {
