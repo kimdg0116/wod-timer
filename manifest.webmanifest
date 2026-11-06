@@ -1,0 +1,17 @@
+{
+  "name": "WOD 타이머",
+  "short_name": "WOD 타이머",
+  "description": "크로스핏 WOD 인터벌 타이머 (타바타, 라운드, 스톱워치)",
+  "lang": "ko",
+  "id": "./",
+  "start_url": "./",
+  "scope": "./",
+  "display": "standalone",
+  "orientation": "any",
+  "background_color": "#0f1420",
+  "theme_color": "#142039",
+  "icons": [
+    { "src": "./icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any" },
+    { "src": "./icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any" }
+  ]
+}
