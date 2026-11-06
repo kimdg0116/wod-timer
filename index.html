@@ -145,6 +145,8 @@ input, textarea { -webkit-user-select:text; user-select:text; }
 button { font-family:inherit; color:inherit; cursor:pointer; }
 button svg { pointer-events:none; }   /* 아이콘 대신 버튼이 누름을 받는다 */
 #play { touch-action:none; flex-shrink:0; }   /* 버튼 위의 작은 손 떨림을 스크롤로 처리하지 않는다 */
+#playLand { touch-action:none; flex-shrink:0; display:none; }
+#resetLand { display:none; }
 body.run .upd { display:none; }       /* 운동 중엔 새 버전 버튼이 버튼을 가리지 않게 */
 @font-face { font-family:Oswald; src:url(https://cdn.jsdelivr.net/npm/@fontsource-variable/oswald@5.1.1/files/oswald-latin-wght-normal.woff2) format("woff2-variations"); font-weight:200 700; font-display:block; }
 @font-face { font-family:"SUIT Variable"; src:url(https://cdn.jsdelivr.net/gh/sun-typeface/SUIT@2.0.5/fonts/variable/woff2/SUIT-Variable.woff2) format("woff2-variations"); font-weight:100 900; font-display:block; }
@@ -196,8 +198,10 @@ body.run .upd { display:none; }       /* 운동 중엔 새 버전 버튼이 버�
 body.run .tabs button:not(.on) { opacity:.35; }
 /* 가로 (운동하면서 2~5m 밖에서 보는 화면): 화면 전체가 지금 구간 색, 그 위에 큰 숫자 하나.
    위는 얇은 머리줄(제목·총 시간 | 구간 이름 | 시작), 아래는 차콜 띠 하나(남은 라운드 | 다음 구간 칩 | 남은 사이클).
-   탭·설정·편집은 숨긴다 (바꾸려면 세로로). 요소 자리 옮기기는 layout() */
+   탭·설정·편집은 숨긴다 (바꾸려면 세로로). 조작 버튼은 회전 때 DOM에서 옮기지 않는다 */
 @media (orientation:landscape) {
+  #play, #resetBtn { display:none !important; }
+  #playLand, #resetLand:not([hidden]) { display:grid; }
   #app { grid-template-rows:auto minmax(0, 1fr) auto; grid-template-areas:"top" "cur" "ctl"; background:var(--now); color:var(--ink); }
   .tabs, .top [data-act=settings], #editBtn, #playLab { display:none !important; }
   .top { grid-template-columns:1fr auto 1fr; padding:max(8px, var(--st)) 16px 0; background:none; }
@@ -295,7 +299,9 @@ select { width:100%; padding:9px 10px; font:inherit; font-size:15px; border:1px 
     <div class="ttl"><b id="mname"></b><span id="total" class="num"></span></div>
     <div class="r">
       <button type="button" class="ibtn ring" id="resetBtn" data-act="reset" aria-label="처음으로 되돌리기" hidden><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3.5 12a8.5 8.5 0 1 0 2.6-6.1L3.5 8.5"/><path d="M3.5 3.5v5h5"/></svg></button>
+      <button type="button" class="ibtn ring" id="resetLand" data-act="reset" aria-label="처음으로 되돌리기" hidden><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3.5 12a8.5 8.5 0 1 0 2.6-6.1L3.5 8.5"/><path d="M3.5 3.5v5h5"/></svg></button>
       <button type="button" class="ibtn" id="editBtn" data-act="edit" aria-label="타이머 설정 바꾸기"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 6h10M18 6h2M4 12h4M12 12h8M4 18h12"/><circle cx="16" cy="6" r="2"/><circle cx="10" cy="12" r="2"/><circle cx="18" cy="18" r="2"/></svg></button>
+      <button type="button" class="play" id="playLand" data-act="play" aria-label="시작"></button>
     </div>
   </div>
   <section class="pane" id="cur"><div class="lab" id="curLab"></div><div class="dig" id="curDig"></div></section>
@@ -328,7 +334,7 @@ select { width:100%; padding:9px 10px; font:inherit; font-size:15px; border:1px 
 <button type="button" id="upd" class="upd" hidden>새 버전이 있습니다 · 눌러서 새로고침</button>
 
 <script>
-const APP_VERSION = '26.11.06-16';                                      // 올릴 때마다 version.json · sw.js 와 같이 올린다
+const APP_VERSION = '26.11.06-17';                                      // 올릴 때마다 version.json · sw.js 와 같이 올린다
 const $ = s => document.querySelector(s);
 const esc = s => String(s).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
 const copy = o => JSON.parse(JSON.stringify(o));
@@ -471,10 +477,12 @@ function draw() {
   const go = $('.go'), running = T && T.run;
   go.style.setProperty('--pc', curPc || colOf(c, 'prep'));
   $('#app').style.setProperty('--now', curPc || 'var(--card)');
-  put($('#play'), running ? ICON.pause : ICON.play);
-  $('#play').setAttribute('aria-label', running ? '일시정지' : '시작');
+  for (const button of [$('#play'), $('#playLand')]) {
+    put(button, running ? ICON.pause : ICON.play);
+    button.setAttribute('aria-label', running ? '일시정지' : '시작');
+  }
   text($('#playLab'), done ? '다시 시작' : running ? '일시정지' : T ? '계속' : '시작');
-  $('#resetBtn').hidden = !T || T.run; $('#editBtn').hidden = !!T;    // 되돌리기는 멈춘 뒤에만 (운동 중 잘못 눌러도 안 지워지게)
+  $('#resetBtn').hidden = $('#resetLand').hidden = !T || T.run; $('#editBtn').hidden = !!T;    // 되돌리기는 멈춘 뒤에만 (운동 중 잘못 눌러도 안 지워지게)
   put($('#tabs'), Object.keys(MODES).map(m => `<button type="button" class="${m === S.mode ? 'on' : ''}" data-tab="${m}">${ICON[m]}${MODES[m].name}</button>`).join(''));
 }
 
@@ -721,10 +729,11 @@ const ACT = {
 };
 // 시작·일시정지: iOS의 지연 click 대신 손가락을 뗄 때 처리한다.
 // 구간 전환 중에도 같은 버튼이 포인터를 유지한다. 끌기·취소·다중 터치는 실행하지 않는다.
-(() => {
-  const button = $('#play'); let press = null, ignoreClickUntil = 0;
+for (const button of [$('#play'), $('#playLand')]) {
+  let press = null, ignoreClickUntil = 0;
   button.addEventListener('pointerdown', ev => {
     if (ev.pointerType === 'mouse') return;
+    ignoreClickUntil = 0;   // 새 터치는 이전 터치의 중복 click 억제와 무관하다
     if (!ev.isPrimary || press) { press = null; return; }
     press = { id: ev.pointerId, x: ev.clientX, y: ev.clientY, moved: false };
     button.setPointerCapture(ev.pointerId);
@@ -743,11 +752,11 @@ const ACT = {
   button.addEventListener('lostpointercapture', () => { press = null; });
   button.addEventListener('click', ev => {
     // touch 뒤 자동 click이 한 번 더 실행돼 곧바로 재시작하는 것을 막는다. 키보드·보조기술 click은 유지.
-    if (ev.pointerType === 'touch' || ev.pointerType === 'pen' || (ev.detail > 0 && performance.now() < ignoreClickUntil)) {
+    if (ev.detail > 0 && performance.now() < ignoreClickUntil) {
       ev.preventDefault(); ev.stopImmediatePropagation();
     }
   });
-})();
+}
 document.addEventListener('click', ev => {
   const b = ev.target.closest('[data-act],[data-tab],[data-set],[data-kind],[data-pickcolor],[data-pc]');
   if (!b) { if (ev.target.classList.contains('panel')) back(); return; }
@@ -785,12 +794,12 @@ document.addEventListener('visibilitychange', () => {
 // 아이폰은 앱을 나갔다 오면 소리를 '중단됨'으로 두고, 터치 없이는 다시 못 켠다. 아무 데나 처음 닿을 때 깨운다
 addEventListener('pointerdown', () => { resumeAudio(); }, { passive: true });
 
-/* ── 가로·세로 배치: 가로에선 구간 이름·시작 버튼을 위 띠로, 다음 구간을 아래 띠로 옮긴다 (CSS 만으로는 못 옮김) ── */
+/* ── 가로·세로 배치: 구간 이름과 다음 구간만 옮긴다. 조작 버튼은 각 방향의 고정 자리를 쓴다 ── */
 const LAND = matchMedia('(orientation: landscape)');
 function layout() {
   const top = $('.top'), L = $('.top .l'), R = $('.top .r'), go = $('.go');
-  if (LAND.matches) { L.append($('#resetBtn'), $('.ttl')); top.insertBefore($('#curLab'), R); R.append($('#play')); go.append($('#nxt')); }
-  else { top.insertBefore($('.ttl'), R); R.prepend($('#resetBtn')); $('#cur').prepend($('#curLab')); go.prepend($('#play')); $('#app').insertBefore($('#nxt'), $('.ctl')); }
+  if (LAND.matches) { L.append($('.ttl')); top.insertBefore($('#curLab'), R); go.append($('#nxt')); }
+  else { top.insertBefore($('.ttl'), R); $('#cur').prepend($('#curLab')); $('#app').insertBefore($('#nxt'), $('.ctl')); }
 }
 LAND.addEventListener('change', layout);
 layout();

@@ -4,8 +4,8 @@ import assert from 'node:assert/strict';
 import { readFile } from 'node:fs/promises';
 const { webkit, chromium } = await import(process.env.PLAYWRIGHT_MODULE || 'playwright');
 const source = await readFile(process.env.TEST_HTML || new URL('./index.html', import.meta.url), 'utf8');
-for (const [name, engine] of [['webkit', webkit], ['chromium', chromium]]) {
-  const browser = await engine.launch({ headless: true });
+for (const [name, engine] of [['webkit', webkit], ['chromium', chromium]].filter(([name]) => !process.env.TEST_ENGINE || name === process.env.TEST_ENGINE)) {
+  const browser = await engine.launch({ headless: true, ...(name === 'chromium' && process.env.PLAYWRIGHT_CHANNEL ? { channel: process.env.PLAYWRIGHT_CHANNEL } : {}) });
   try {
     const context = await browser.newContext({ viewport: { width: 402, height: 874 }, isMobile: true, hasTouch: true, serviceWorkers: 'block' });
     const page = await context.newPage();
@@ -15,7 +15,7 @@ for (const [name, engine] of [['webkit', webkit], ['chromium', chromium]]) {
     await page.goto('https://wod-test.invalid/');
     await page.evaluate(() => { S.set.sound = false; S.set.vib = false; });
     const tap = async () => {
-      const r = await page.locator('#play').boundingBox(); assert.ok(r);
+      const r = await page.locator('#play:visible, #playLand:visible').boundingBox(); assert.ok(r);
       await page.touchscreen.tap(r.x + r.width / 2, r.y + r.height / 2);
     };
     let taps = 0;
@@ -43,14 +43,29 @@ for (const [name, engine] of [['webkit', webkit], ['chromium', chromium]]) {
       });
       assert.equal(mutations, 0, '같은 초에는 자식 요소 재생성 없음');
     }
-    // 가로로 돌렸다 돌아와도 같은 시작·일시정지 버튼이 동작한다.
-    for (const size of [{ width: 874, height: 402 }, { width: 402, height: 874 }]) {
-      await page.setViewportSize(size);
-      await page.waitForTimeout(100);
-      await page.evaluate(() => { reset(); S.mode = 'stopwatch'; draw(); });
-      await tap(); await tap(); taps += 2;
-      assert.equal(await page.evaluate(() => T.run), false);
-    }
+    // 실행 중 가로로 돌렸다 세로로 돌아와도 두 버튼이 각각 동작한다.
+    await page.evaluate(() => { reset(); S.mode = 'stopwatch'; draw(); });
+    await tap(); taps++;
+    await page.setViewportSize({ width: 874, height: 402 });
+    await page.waitForTimeout(100);
+    assert.equal(await page.locator('#playLand').isVisible(), true);
+    await tap(); taps++;
+    assert.equal(await page.evaluate(() => T.run), false, `${name} landscape pause`);
+    await page.locator('#resetLand').click();
+    assert.equal(await page.evaluate(() => T), null, `${name} landscape reset`);
+    await tap(); taps++;
+    await page.setViewportSize({ width: 402, height: 874 });
+    await page.waitForTimeout(100);
+    assert.equal(await page.locator('#play').isVisible(), true);
+    await tap(); taps++;
+    assert.equal(await page.evaluate(() => T.run), false, `${name} portrait pause after rotation`);
+    await page.locator('#resetBtn').click();
+    assert.equal(await page.evaluate(() => T), null, `${name} portrait reset after rotation`);
+    // WebKit에서 pointerup이 빠져도 뒤따르는 click으로 멈춘다.
+    await tap(); taps++;
+    await page.evaluate(() => document.querySelector('#play').addEventListener('pointerup', e => e.stopImmediatePropagation(), { capture: true, once: true }));
+    await tap(); taps++;
+    assert.equal(await page.evaluate(() => T.run), false, `${name} click fallback`);
     // Chromium 실제 터치를 누르고 운동에서 휴식으로 바뀐 뒤 뗀다.
     if (name === 'chromium') {
       await page.evaluate(() => { reset(); S.mode = 'rounds'; S.cfg.rounds.prep = 0; S.cfg.rounds.work = 1; S.cfg.rounds.rest = 2; S.cfg.rounds.rounds = 2; draw(); });
