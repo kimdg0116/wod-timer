@@ -12,3 +12,8 @@ https://kimdg0116.github.io/wod-timer/
 - 자주 쓰는 설정은 "내 타이머"에 저장
 
 확인: `node test_plan.mjs`
+
+터치 회귀 확인: Playwright와 Chromium·WebKit을 설치한 환경에서 `node test_touch.mjs`.
+별도 설치 위치를 쓸 때는 `PLAYWRIGHT_MODULE=/경로/playwright/index.mjs`를 지정한다.
+실제 사용자 데이터와 서버 대신 독립 브라우저의 로컬 HTML 응답을 사용한다.
+세 모드에서 0초부터 1시간 경과 상태까지 시작 시각을 옮겨 터치·회전·구간 전환을 검사한다. 실제 한 시간 동안 기기를 켜 두는 내구 시험은 아니다.

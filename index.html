@@ -143,7 +143,8 @@ body { margin:0; overflow:hidden; overscroll-behavior-y:none; -webkit-user-selec
 input, textarea { -webkit-user-select:text; user-select:text; }
 [hidden] { display:none !important; }
 button { font-family:inherit; color:inherit; cursor:pointer; }
-button svg { pointer-events:none; }   /* 누른 곳이 늘 버튼이 되게 (아이콘이 바뀌어도 누름이 끊기지 않게) */
+button svg { pointer-events:none; }   /* 아이콘 대신 버튼이 누름을 받는다 */
+#play { touch-action:none; flex-shrink:0; }   /* 버튼 위의 작은 손 떨림을 스크롤로 처리하지 않는다 */
 body.run .upd { display:none; }       /* 운동 중엔 새 버전 버튼이 버튼을 가리지 않게 */
 @font-face { font-family:Oswald; src:url(https://cdn.jsdelivr.net/npm/@fontsource-variable/oswald@5.1.1/files/oswald-latin-wght-normal.woff2) format("woff2-variations"); font-weight:200 700; font-display:block; }
 @font-face { font-family:"SUIT Variable"; src:url(https://cdn.jsdelivr.net/gh/sun-typeface/SUIT@2.0.5/fonts/variable/woff2/SUIT-Variable.woff2) format("woff2-variations"); font-weight:100 900; font-display:block; }
@@ -327,11 +328,12 @@ select { width:100%; padding:9px 10px; font:inherit; font-size:15px; border:1px 
 <button type="button" id="upd" class="upd" hidden>새 버전이 있습니다 · 눌러서 새로고침</button>
 
 <script>
-const APP_VERSION = '26.11.06-15';                                      // 올릴 때마다 version.json · sw.js 와 같이 올린다
+const APP_VERSION = '26.11.06-16';                                      // 올릴 때마다 version.json · sw.js 와 같이 올린다
 const $ = s => document.querySelector(s);
 const esc = s => String(s).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
 const copy = o => JSON.parse(JSON.stringify(o));
 // 바뀐 때만 다시 그린다. 운동 중엔 0.05초마다 그려서, 매번 새로 만들면 아이폰이 누르는 중이던 버튼의 누름을 버린다 (일시정지가 안 눌리던 버그)
+const text = (el, value) => { const v = String(value); if (el.textContent !== v) el.textContent = v; };
 const put = (el, html) => { if (el._h !== html) { el._h = html; el.innerHTML = html; } };
 $('#ver').textContent = 'v' + APP_VERSION;
 
@@ -401,11 +403,11 @@ const ICON = {
 };
 
 /* ── 타이머: 시작 시각과 쌓인 시간으로 계산 (화면이 잠깐 멈췄다 와도 시간이 밀리지 않는다) ── */
-let T = null, loop = 0;
+let T = null, loop = 0, lastFrame = null;
 const now = () => Date.now() / 1000;
 const elapsed = () => T.acc + (T.run ? now() - T.t0 : 0);
 function toggle() {
-  unlockAudio();
+  try { unlockAudio(); } catch (e) { console.warn('소리 준비 실패', e); }
   if (T && T.done) T = null;
   if (!T) {
     const sg = plan(S.mode, cfg());
@@ -416,7 +418,7 @@ function toggle() {
   run();
 }
 function reset() { T = null; run(); }
-function run() { clearInterval(loop); if (T && T.run) loop = setInterval(frame, 50); wake(!!(T && T.run)); frame(); }
+function run() { lastFrame = null; clearInterval(loop); if (T && T.run) loop = setInterval(frame, 50); wake(!!(T && T.run)); frame(); }
 function frame() {
   if (T) {
     const e = elapsed(), sg = T.segs; let i = Math.max(T.i, 0);
@@ -436,16 +438,18 @@ function frame() {
       }
     }
   }
-  draw();
+  // 시간은 계속 계산하되 표시할 초·구간·실행 상태가 달라질 때만 그린다.
+  const key = T ? `${T.i}:${T.sec}:${T.run}:${!!T.done}` : 'idle';
+  if (key !== lastFrame) { lastFrame = key; draw(); }
 }
 function draw() {
   const c = cfg(), M = MODES[S.mode], sg = T ? T.segs : plan(S.mode, c), e = T ? elapsed() : 0, total = totalOf(sg);
   const done = T && T.done, i = T ? Math.max(T.i, 0) : 0, s = sg[i], n = sg[i + 1];
   document.body.classList.toggle('run', !!T);
   document.body.classList.toggle('going', !!(T && T.run));
-  $('#mname').textContent = M.name;
-  $('#total').textContent = S.mode === 'stopwatch' ? '' : fmt(done ? total : total - e);
-  const pane = (id, lab, dig, pc) => { const p = $(id); p.classList.toggle('off', !pc); p.style.setProperty('--pc', pc || ''); $(id + 'Lab').textContent = lab; put($(id + 'Dig'), dig.replace(/\d/g, '<i>$&</i>')); };
+  text($('#mname'), M.name);
+  text($('#total'), S.mode === 'stopwatch' ? '' : fmt(done ? total : Math.ceil(total - e)));
+  const pane = (id, lab, dig, pc) => { const p = $(id); p.classList.toggle('off', !pc); p.style.setProperty('--pc', pc || ''); text($(id + 'Lab'), lab); put($(id + 'Dig'), dig.replace(/\d/g, '<i>$&</i>')); };
   let curPc = '';
   if (done) { curPc = colOf(c, 'work'); pane('#cur', '완료', fmt(total || e), curPc); pane('#nxt', '처음부터 다시 하려면 시작', '', ''); }
   else if (!s) { pane('#cur', '시간을 정해 주세요', '00:00', ''); pane('#nxt', '오른쪽 위 버튼으로 바꿔요', '', ''); }
@@ -461,7 +465,7 @@ function draw() {
     else pane('#nxt', '마지막 구간', '', '');
   }
   $('#cur').classList.toggle('long', $('#curDig').textContent.length > 5);
-  const stat = (id, show, v, pc) => { const el = $(id); el.style.visibility = show ? '' : 'hidden'; el.style.setProperty('--pc', pc); el.querySelector('b').textContent = v; };
+  const stat = (id, show, v, pc) => { const el = $(id); el.style.visibility = show ? '' : 'hidden'; el.style.setProperty('--pc', pc); text(el.querySelector('b'), v); };
   stat('#statR', S.mode !== 'stopwatch', done || !s ? 0 : s.leftR, colOf(c, 'rounds'));
   stat('#statY', S.mode === 'tabata', done || !s ? 0 : s.leftY, colOf(c, 'cycles'));
   const go = $('.go'), running = T && T.run;
@@ -469,7 +473,7 @@ function draw() {
   $('#app').style.setProperty('--now', curPc || 'var(--card)');
   put($('#play'), running ? ICON.pause : ICON.play);
   $('#play').setAttribute('aria-label', running ? '일시정지' : '시작');
-  $('#playLab').textContent = done ? '다시 시작' : running ? '일시정지' : T ? '계속' : '시작';
+  text($('#playLab'), done ? '다시 시작' : running ? '일시정지' : T ? '계속' : '시작');
   $('#resetBtn').hidden = !T || T.run; $('#editBtn').hidden = !!T;    // 되돌리기는 멈춘 뒤에만 (운동 중 잘못 눌러도 안 지워지게)
   put($('#tabs'), Object.keys(MODES).map(m => `<button type="button" class="${m === S.mode ? 'on' : ''}" data-tab="${m}">${ICON[m]}${MODES[m].name}</button>`).join(''));
 }
@@ -492,6 +496,10 @@ async function wake(on) {                                              // 요청
    소리를 처음 만들기 전에 정해야 따른다 - 그래서 페이지를 열자마자 정하고, 설정을 바꾸면 소리 엔진을 새로 만든다.
    그리고 시작 버튼을 누를 때 빈 소리를 한 번 내서 소리를 깨운다 ── */
 let AC = null;
+function resumeAudio() {
+  if (!AC || AC.state === 'running') return;
+  try { Promise.resolve(AC.resume()).catch(() => {}); } catch (e) { /* 소리 재개 실패가 화면 조작을 막지 않게 한다 */ }
+}
 function setSession() { try { if (navigator.audioSession) navigator.audioSession.type = S.set.silent ? 'playback' : 'auto'; } catch (e) {} }
 setSession();
 function unlockAudio() {
@@ -499,7 +507,7 @@ function unlockAudio() {
     const A = window.AudioContext || window.webkitAudioContext;
     if (A) { AC = new A(); const s = AC.createBufferSource(); s.buffer = AC.createBuffer(1, 1, 22050); s.connect(AC.destination); s.start(0); }
   }
-  if (AC && AC.state !== 'running') AC.resume().catch(() => {});
+  resumeAudio();
   if (S.set.voice && window.speechSynthesis && !unlockAudio.v) { unlockAudio.v = 1; speechSynthesis.speak(new SpeechSynthesisUtterance(' ')); }
 }
 function tone(f, dur, o = {}) {
@@ -507,11 +515,18 @@ function tone(f, dur, o = {}) {
   const t = AC.currentTime + (o.at || 0), v = S.set.vol * (o.v || .5), g = AC.createGain(), parts = o.parts || [[1, 1]];
   const sum = parts.reduce((a, p) => a + p[1], 0);                     // 배음을 합쳐도 최대 크기를 넘지 않게 (넘으면 소리가 깨진다)
   g.connect(AC.destination);
+  let remaining = parts.length;
   for (const [mul, amp] of parts) {
     const os = AC.createOscillator(), pg = AC.createGain();
     os.type = o.wave || 'sine'; os.frequency.value = f * mul; pg.gain.value = amp / sum;
     os.connect(pg).connect(g);
-    if (o.vib) { const l = AC.createOscillator(), lg = AC.createGain(); l.frequency.value = o.vib; lg.gain.value = f * mul * .03; l.connect(lg).connect(os.frequency); l.start(t); l.stop(t + dur + .05); }
+    let vibrato = null, vibratoGain = null;
+    if (o.vib) { vibrato = AC.createOscillator(); vibratoGain = AC.createGain(); vibrato.frequency.value = o.vib; vibratoGain.gain.value = f * mul * .03; vibrato.connect(vibratoGain).connect(os.frequency); vibrato.start(t); vibrato.stop(t + dur + .05); }
+    os.onended = () => {                                             // 긴 운동에서도 끝난 소리 연결이 쌓이지 않게
+      os.disconnect(); pg.disconnect();
+      if (vibrato) { vibrato.disconnect(); vibratoGain.disconnect(); }
+      if (--remaining === 0) g.disconnect();
+    };
     os.start(t); os.stop(t + dur + .05);
   }
   g.gain.setValueAtTime(.0001, t);
@@ -704,6 +719,35 @@ const ACT = {
   askDel: b => { E.del = b.dataset.id; drawEdit(); },                  // 휴지통 한 번 = 확인 버튼, 그걸 누르면 지운다 (confirm() 창도 안 쓴다)
   delSaved: b => { const t = S.saved.find(x => x.id === b.dataset.id); if (!t) return; S.saved = S.saved.filter(x => x !== t); save(); E.del = null; drawEdit(); toast(`'${t.name}' 지움`); },
 };
+// 시작·일시정지: iOS의 지연 click 대신 손가락을 뗄 때 처리한다.
+// 구간 전환 중에도 같은 버튼이 포인터를 유지한다. 끌기·취소·다중 터치는 실행하지 않는다.
+(() => {
+  const button = $('#play'); let press = null, ignoreClickUntil = 0;
+  button.addEventListener('pointerdown', ev => {
+    if (ev.pointerType === 'mouse') return;
+    if (!ev.isPrimary || press) { press = null; return; }
+    press = { id: ev.pointerId, x: ev.clientX, y: ev.clientY, moved: false };
+    button.setPointerCapture(ev.pointerId);
+  });
+  button.addEventListener('pointermove', ev => {
+    if (press && press.id === ev.pointerId && Math.hypot(ev.clientX - press.x, ev.clientY - press.y) > 16) press.moved = true;
+  });
+  button.addEventListener('pointerup', ev => {
+    if (!press || press.id !== ev.pointerId) return;
+    const p = press; press = null; ignoreClickUntil = performance.now() + 800;
+    ev.preventDefault();
+    const r = button.getBoundingClientRect();
+    if (!p.moved && ev.clientX >= r.left && ev.clientX <= r.right && ev.clientY >= r.top && ev.clientY <= r.bottom) toggle();
+  });
+  button.addEventListener('pointercancel', () => { press = null; });
+  button.addEventListener('lostpointercapture', () => { press = null; });
+  button.addEventListener('click', ev => {
+    // touch 뒤 자동 click이 한 번 더 실행돼 곧바로 재시작하는 것을 막는다. 키보드·보조기술 click은 유지.
+    if (ev.pointerType === 'touch' || ev.pointerType === 'pen' || (ev.detail > 0 && performance.now() < ignoreClickUntil)) {
+      ev.preventDefault(); ev.stopImmediatePropagation();
+    }
+  });
+})();
 document.addEventListener('click', ev => {
   const b = ev.target.closest('[data-act],[data-tab],[data-set],[data-kind],[data-pickcolor],[data-pc]');
   if (!b) { if (ev.target.classList.contains('panel')) back(); return; }
@@ -735,11 +779,11 @@ addEventListener('keydown', ev => {                                   // 맥·�
 document.addEventListener('visibilitychange', () => {
   if (document.visibilityState !== 'visible') return;
   if (T && T.run) wake(true);
-  if (AC && AC.state !== 'running') AC.resume().catch(() => {});
+  resumeAudio();
   frame();
 });
 // 아이폰은 앱을 나갔다 오면 소리를 '중단됨'으로 두고, 터치 없이는 다시 못 켠다. 아무 데나 처음 닿을 때 깨운다
-addEventListener('pointerdown', () => { if (AC && AC.state !== 'running') AC.resume().catch(() => {}); }, { passive: true });
+addEventListener('pointerdown', () => { resumeAudio(); }, { passive: true });
 
 /* ── 가로·세로 배치: 가로에선 구간 이름·시작 버튼을 위 띠로, 다음 구간을 아래 띠로 옮긴다 (CSS 만으로는 못 옮김) ── */
 const LAND = matchMedia('(orientation: landscape)');
