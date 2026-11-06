@@ -8,8 +8,8 @@
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="apple-mobile-web-app-title" content="WOD 타이머">
-<meta name="theme-color" content="#e3eeff" media="(prefers-color-scheme: light)">
-<meta name="theme-color" content="#142039" media="(prefers-color-scheme: dark)">
+<meta name="theme-color" content="#e8e9ea" media="(prefers-color-scheme: light)">
+<meta name="theme-color" content="#1c1d20" media="(prefers-color-scheme: dark)">
 <link rel="manifest" href="./manifest.webmanifest">
 <link rel="apple-touch-icon" href="./apple-touch-icon.png">
 <link rel="icon" type="image/png" href="./icon-192.png">
@@ -22,10 +22,10 @@
     : 'width=device-width, initial-scale=1, minimum-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover'; if (m.content !== v) m.content = v; };
   fit(); addEventListener('resize', fit); }
 try {                                                                  // 테마 색·화면 모드는 첫 화면부터. 타이머라 처음엔 어둡게
-  const c = localStorage.getItem('color'), t = localStorage.getItem('theme') || 'dark';
-  if (c && c !== 'blue') document.documentElement.dataset.color = c;
+  const c = localStorage.getItem('wod-color') || 'charcoal', t = localStorage.getItem('wod-theme') || 'dark';   // 같은 주소의 다른 앱과 섞이지 않게 이 앱만의 칸
+  if (c !== 'blue') document.documentElement.dataset.color = c;
   if (t === 'light' || t === 'dark') document.documentElement.dataset.theme = t;
-} catch (e) { document.documentElement.dataset.theme = 'dark'; }
+} catch (e) { document.documentElement.dataset.theme = 'dark'; document.documentElement.dataset.color = 'charcoal'; }
 </script>
 <style>
 /* 색: 도시메트리 캘린더와 같은 토큰·테마 색 16가지 (SMC 디자인 가이드 3.0 기본 파랑) */
@@ -157,30 +157,39 @@ button { font-family:inherit; color:inherit; cursor:pointer; }
   box-shadow:inset 0 0 0 calc(var(--play) * .07) var(--pc), inset 0 0 0 calc(var(--play) * .105) var(--ink); }
 .play svg { width:40%; height:40%; }
 .go span { font-size:var(--s2); font-weight:800; color:color-mix(in srgb, var(--pc) var(--pcw), var(--fg)); }
-/* 탭: 아이폰이 홈 화면 앱에 크게 주는 바닥 여백을 다 쓰지 않는다 (홈 막대만 피할 만큼) */
-.tabs { grid-area:tabs; display:flex; justify-content:space-around; gap:6px; padding:4px max(12px, var(--sr)) max(4px, calc(var(--sb) - 18px)) max(12px, var(--sl)); border-top:1px solid var(--line); }
+/* 탭: TimerPlus 처럼 홈 막대 위에 붙인다 (바닥 안전 영역 - 8px) */
+.tabs { grid-area:tabs; display:flex; justify-content:space-around; gap:6px; padding:4px max(12px, var(--sr)) max(6px, calc(var(--sb) - 8px)) max(12px, var(--sl)); border-top:1px solid var(--line); }
 .tabs button { flex:1; max-width:160px; display:flex; flex-direction:column; align-items:center; gap:1px; padding:5px 0 3px; border:0; border-radius:14px; background:none; color:var(--mute); font-size:var(--tf); font-weight:700; }
 .tabs button svg { width:var(--ti); height:var(--ti); }
 .tabs button.on { background:var(--soft); color:var(--acc); }
 body.run .tabs button:not(.on) { opacity:.35; }
-/* 가로: 왼쪽에 큰 숫자, 오른쪽에 다음 구간과 버튼. 운동 중엔 위 바·탭을 숨겨 숫자를 화면 가득 */
+#nxtWord { display:none; }
+/* 가로: TimerPlus 처럼 [위 띠: 되돌리기·제목 | 구간 이름 | 시작] / 큰 숫자 / [아래 띠: 남은 라운드 | 다음 구간 | 남은 사이클].
+   화면 전체를 지금 구간 색으로 채우고 탭·설정·편집은 숨긴다 (바꾸려면 세로로). 요소 자리 옮기기는 layout() */
 @media (orientation:landscape) {
-  :root { --sn:clamp(40px, 10vmin, 110px); --s2:clamp(13px, 2.4vmin, 22px); --play:clamp(70px, 17vmin, 160px); }
-  #app { grid-template-columns:minmax(0, 1fr) clamp(190px, 25vw, 380px); grid-template-rows:auto minmax(0, 1fr) auto auto;
-    grid-template-areas:"top top" "cur nxt" "cur ctl" "tabs tabs"; }
-  .top { padding-top:max(4px, var(--st)); padding-bottom:4px; }
-  #cur { padding:0 0 var(--sb) var(--sl); }
-  #nxt { padding-right:var(--sr); }
-  #cur .lab { font-size:min(7cqw, 12cqh); }
-  #cur .dig { font-size:min(38cqw, 80cqh); }
-  #cur.long .dig { font-size:min(30cqw, 66cqh); }
-  #nxt .lab { font-size:min(10cqw, 14cqh); }
-  #nxt .dig { font-size:min(36cqw, 46cqh); }
-  .ctl { grid-template-columns:1fr 1fr; grid-template-areas:"r y" "go go"; row-gap:8px; padding:10px max(8px, var(--sr)) max(8px, var(--sb)) 8px; }
-  #statR { grid-area:r; } #statY { grid-area:y; } .go { grid-area:go; }
-  body.going .top, body.going .tabs { display:none; }
-  body.going #cur { padding-top:var(--st); }
-  body.going #nxt { padding-top:var(--st); }
+  #app { grid-template-rows:auto minmax(0, 1fr) auto; grid-template-areas:"top" "cur" "ctl"; background:var(--now); color:var(--ink); }
+  .tabs, .top [data-act=settings], #editBtn, #playLab, .stat span { display:none !important; }
+  .top { grid-template-columns:1fr auto 1fr; height:calc(20vh + var(--st)); padding:var(--st) 16px 0; background:color-mix(in srgb, var(--now) 62%, #fff); }
+  .top .l { display:flex; align-items:center; gap:2vh; min-width:0; }
+  .ttl { display:flex; align-items:baseline; gap:.35em; text-align:left; color:var(--ink); }
+  .ttl b, .ttl span { font-size:5.4vh; color:inherit; }
+  .ttl span { font-family:var(--num); font-weight:700; }
+  .top .lab { max-width:none; overflow:visible; font-size:13vh; color:var(--ink); }
+  .top .r { justify-content:flex-end; }
+  .top .ibtn.ring, .top .play { width:15vh; height:15vh; background:#222; color:var(--now); box-shadow:none; }
+  .top .play svg { width:42%; height:42%; }
+  #cur { padding:0 var(--sr) 0 var(--sl); background:none; }
+  #cur .dig { font-size:min(38cqw, 100cqh); }
+  #cur.long .dig { font-size:min(29cqw, 100cqh); }
+  .ctl { grid-template-columns:auto minmax(0, 1fr) auto; height:18vh; padding:0; }
+  .stat { display:grid; place-items:center; min-width:22vh; height:100%; padding:0 2vh; background:#222; }
+  .stat b { font-size:13vh; color:var(--pc); }
+  .go { display:grid; grid-template-columns:1fr 1.7fr; align-items:stretch; height:100%; gap:0; }
+  #nxtWord { display:grid !important; place-items:center; font-size:12vh; font-weight:800; }
+  #nxt { grid-area:auto; flex-direction:row; }
+  #nxt .lab, #nxt .dig { font-size:min(62cqh, 11cqw); }
+  #nxt .lab { font-weight:800; }
+  #nxt .dig:not(:empty)::before { content:':'; }
 }
 
 /* 시트 (설정 · 타이머 편집) */
@@ -251,7 +260,7 @@ select { width:100%; padding:9px 10px; font:inherit; font-size:15px; border:1px 
 <body>
 <div id="app">
   <div class="top">
-    <div><button type="button" class="ibtn" data-act="settings" aria-label="설정 열기"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 1 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 1 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 1 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 1 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg></button></div>
+    <div class="l"><button type="button" class="ibtn" data-act="settings" aria-label="설정 열기"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 1 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 1 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 1 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 1 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg></button></div>
     <div class="ttl"><b id="mname"></b><span id="total" class="num"></span></div>
     <div class="r">
       <button type="button" class="ibtn ring" id="resetBtn" data-act="reset" aria-label="처음으로 되돌리기" hidden><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3.5 12a8.5 8.5 0 1 0 2.6-6.1L3.5 8.5"/><path d="M3.5 3.5v5h5"/></svg></button>
@@ -262,7 +271,7 @@ select { width:100%; padding:9px 10px; font:inherit; font-size:15px; border:1px 
   <section class="pane" id="nxt"><div class="lab" id="nxtLab"></div><div class="dig" id="nxtDig"></div></section>
   <div class="ctl">
     <div class="stat" id="statR"><b></b><span>남은 라운드</span></div>
-    <div class="go"><button type="button" class="play" id="play" data-act="play" aria-label="시작"></button><span id="playLab"></span></div>
+    <div class="go"><button type="button" class="play" id="play" data-act="play" aria-label="시작"></button><span id="playLab"></span><span id="nxtWord">다음</span></div>
     <div class="stat" id="statY"><b></b><span>남은 사이클</span></div>
   </div>
   <nav class="tabs" id="tabs"></nav>
@@ -288,7 +297,7 @@ select { width:100%; padding:9px 10px; font:inherit; font-size:15px; border:1px 
 <button type="button" id="upd" class="upd" hidden>새 버전이 있습니다 · 눌러서 새로고침</button>
 
 <script>
-const APP_VERSION = '26.11.06-4';                                      // 올릴 때마다 version.json · sw.js 와 같이 올린다
+const APP_VERSION = '26.11.06-5';                                      // 올릴 때마다 version.json · sw.js 와 같이 올린다
 const $ = s => document.querySelector(s);
 const esc = s => String(s).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
 const copy = o => JSON.parse(JSON.stringify(o));
@@ -425,6 +434,7 @@ function draw() {
   stat('#statY', S.mode === 'tabata', done || !s ? 0 : s.leftY, colOf(c, 'cycles'));
   const go = $('.go'), running = T && T.run;
   go.style.setProperty('--pc', curPc || colOf(c, 'prep'));
+  $('#app').style.setProperty('--now', curPc || 'var(--card)');
   $('#play').innerHTML = running ? ICON.pause : ICON.play;
   $('#play').setAttribute('aria-label', running ? '일시정지' : '시작');
   $('#playLab').textContent = done ? '다시 시작' : running ? '일시정지' : T ? '계속' : '시작';
@@ -552,13 +562,13 @@ const THEMES = ['system', 'light', 'dark'], THEME_ICON = {
   dark: svgIcon('<path d="M12 3a6 6 0 0 0 9 9 9 9 0 1 1-9-9Z"/>'),
 };
 let theme = 'dark';
-try { const t = localStorage.getItem('theme'); if (THEMES.includes(t)) theme = t; } catch (e) {}
+try { const t = localStorage.getItem('wod-theme'); if (THEMES.includes(t)) theme = t; } catch (e) {}
 function setTheme(t) {
   theme = t;
   if (t === 'system') document.documentElement.removeAttribute('data-theme'); else document.documentElement.setAttribute('data-theme', t);
   $('#theme').innerHTML = THEME_ICON[t];
   $('#themeMode').textContent = { system: '기기 설정에 맞춤', light: '밝게', dark: '어둡게' }[t];
-  try { localStorage.setItem('theme', t); } catch (e) {}
+  try { localStorage.setItem('wod-theme', t); } catch (e) {}
 }
 // 테마 색: 도시메트리 캘린더와 같은 16가지. 새 색 = 여기 한 줄 + CSS :root[data-color="…"] 블록
 const COLORS = [
@@ -579,8 +589,8 @@ const COLORS = [
   { id: 'bluegray', name: '블루 그레이 · 푸른빛', dot: '#41536B', bar: ['#e8eaed', '#1b1c20'] },
   { id: 'warmgray', name: '웜 그레이 · 따뜻하게', dot: '#504943', bar: ['#eae9e8', '#1e1c1d'] },
 ];
-let color = 'blue';
-try { color = COLORS.some(c => c.id === localStorage.getItem('color')) ? localStorage.getItem('color') : 'blue'; } catch (e) {}
+let color = 'charcoal';
+try { const c = localStorage.getItem('wod-color'); if (COLORS.some(x => x.id === c)) color = c; } catch (e) {}
 function setColor(id) {
   const c = COLORS.find(c => c.id === id) || COLORS[0];
   color = c.id;
@@ -588,7 +598,7 @@ function setColor(id) {
   document.querySelectorAll('meta[name="theme-color"]').forEach((m, k) => { m.content = c.bar[k]; });
   $('#colorName').textContent = c.name;
   $('#colorPick').innerHTML = COLORS.map(x => `<button type="button" data-pickcolor="${x.id}" class="${x.id === c.id ? 'on' : ''}" style="--sw:${x.dot}" aria-label="${x.name}"></button>`).join('');
-  try { localStorage.setItem('color', c.id); } catch (e) {}
+  try { localStorage.setItem('wod-color', c.id); } catch (e) {}
 }
 function drawSettings() {
   const st = S.set, onoff = k => `<button type="button" class="${st[k] ? 'on' : ''}" data-set="${k}" data-v="1">켬</button><button type="button" class="${st[k] ? '' : 'on'}" data-set="${k}" data-v="0">끔</button>`;
@@ -680,6 +690,23 @@ document.addEventListener('visibilitychange', () => {
   if (AC && AC.state !== 'running') AC.resume().catch(() => {});
   frame();
 });
+
+/* ── 가로·세로 배치: 가로에선 구간 이름·시작 버튼을 위 띠로, 다음 구간을 아래 띠로 옮긴다 (CSS 만으로는 못 옮김) ── */
+const LAND = matchMedia('(orientation: landscape)');
+function layout() {
+  const top = $('.top'), L = $('.top .l'), R = $('.top .r'), go = $('.go');
+  if (LAND.matches) { L.append($('#resetBtn'), $('.ttl')); top.insertBefore($('#curLab'), R); R.append($('#play')); go.prepend($('#nxtWord')); go.append($('#nxt')); }
+  else { top.insertBefore($('.ttl'), R); R.prepend($('#resetBtn')); $('#cur').prepend($('#curLab')); go.prepend($('#play')); $('#app').insertBefore($('#nxt'), $('.ctl')); }
+}
+// 아이폰 홈 화면 앱은 세로일 때 상태 막대 높이만큼 화면을 짧게 잡아 바닥에 빈 띠가 생긴다. 실제 화면보다 짧으면 화면 높이로 늘린다 (아이폰·패드만)
+function fitHeight() {
+  const land = LAND.matches, W = Math.max(screen.width, screen.height), N = Math.min(screen.width, screen.height);
+  const H = land ? N : W, gap = H - innerHeight;
+  $('#app').style.height = navigator.standalone && gap > 0 && gap < 120 && Math.abs(innerWidth - (land ? W : N)) < 2 ? H + 'px' : '';
+}
+LAND.addEventListener('change', () => { layout(); fitHeight(); });
+addEventListener('resize', fitHeight);
+layout(); fitHeight();
 
 setTheme(theme); setColor(color); draw();
 
