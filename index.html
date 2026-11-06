@@ -274,13 +274,14 @@ select { width:100%; padding:9px 10px; font:inherit; font-size:15px; border:1px 
   <div class="settings-row" id="loudRow"><div><b>무음 모드에서도 소리</b><p>켜면 듣던 음악이 멈출 수 있어요</p></div><div class="seg" id="setLoud"></div></div>
   <div class="settings-row" id="vibRow"><div><b>진동</b><p>구간이 바뀔 때</p></div><div class="seg" id="setVib"></div></div>
   <p class="ver" id="ver"></p>
+  <p class="ver" style="margin-top:2px">© Dongkyu Kim</p>
 </div></div>
 <div id="edit" class="panel" role="dialog" aria-modal="true" hidden><div class="sheet" id="editSheet"></div></div>
 <div id="toast"></div>
 <button type="button" id="upd" class="upd" hidden>새 버전이 있습니다 · 눌러서 새로고침</button>
 
 <script>
-const APP_VERSION = '26.11.06-2';                                      // 올릴 때마다 version.json · sw.js 와 같이 올린다
+const APP_VERSION = '26.11.06-3';                                      // 올릴 때마다 version.json · sw.js 와 같이 올린다
 const $ = s => document.querySelector(s);
 const esc = s => String(s).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
 const copy = o => JSON.parse(JSON.stringify(o));
