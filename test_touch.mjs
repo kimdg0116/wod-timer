@@ -43,6 +43,32 @@ for (const [name, engine] of [['webkit', webkit], ['chromium', chromium]].filter
       });
       assert.equal(mutations, 0, '같은 초에는 자식 요소 재생성 없음');
     }
+    // 신고 재현 순서 그대로: 세로 시작 -> 실행 유지 -> 가로 -> 실행 유지 -> 세로 -> 첫 터치로 일시정지.
+    // 회전 중에는 정지·초기화·재시작하지 않는다.
+    for (const mode of ['tabata', 'rounds', 'stopwatch']) {
+      for (const settle of [50, 150, 350]) {
+        await page.evaluate(m => { reset(); S.mode = m; draw(); }, mode);
+        await tap(); taps++;
+        const parent = await page.evaluate(() => document.querySelector('#play').parentElement.className);
+        for (let cycle = 0; cycle < 3; cycle++) {
+          await page.setViewportSize({ width: 874, height: 402 });
+          await page.waitForTimeout(settle);
+          assert.equal(await page.evaluate(() => T.run), true, '가로에서도 실행 유지');
+          await page.setViewportSize({ width: 402, height: 874 });
+          await page.waitForTimeout(settle);
+          assert.equal(await page.evaluate(() => T.run), true, '세로 복귀까지 실행 유지');
+        }
+        assert.equal(await page.evaluate(() => document.querySelector('#play').parentElement.className), parent, '회전 후에도 버튼 부모 유지');
+        const b = await page.locator('#play').boundingBox();
+        assert.equal(await page.evaluate(({ x, y }) => document.elementFromPoint(x, y)?.closest('button')?.id,
+          { x: b.x + b.width / 2, y: b.y + b.height / 2 }), 'play', '버튼을 덮는 요소 없음');
+        await tap(); taps++;
+        assert.equal(await page.evaluate(() => T.run), false, `${name} ${mode} uninterrupted rotation pause`);
+        const paused = await page.evaluate(() => elapsed());
+        await page.waitForTimeout(150);
+        assert.equal(await page.evaluate(() => elapsed()), paused, '첫 터치로 실제 시간 정지');
+      }
+    }
     // 실행 중 가로로 돌렸다 세로로 돌아와도 두 버튼이 각각 동작한다.
     await page.evaluate(() => { reset(); S.mode = 'stopwatch'; draw(); });
     await tap(); taps++;
@@ -61,6 +87,33 @@ for (const [name, engine] of [['webkit', webkit], ['chromium', chromium]].filter
     assert.equal(await page.evaluate(() => T.run), false, `${name} portrait pause after rotation`);
     await page.locator('#resetBtn').click();
     assert.equal(await page.evaluate(() => T), null, `${name} portrait reset after rotation`);
+    // 세로 시작 -> 가로 -> 세로 -> 일시정지 -> 리셋 -> 각 탭을 순서대로 직접 터치.
+    await page.evaluate(() => { reset(); S.mode = 'tabata'; draw(); });
+    await tap();
+    await page.setViewportSize({ width: 874, height: 402 }); await page.waitForTimeout(100);
+    await page.setViewportSize({ width: 402, height: 874 }); await page.waitForTimeout(100);
+    await tap();
+    await page.locator('#resetBtn').tap();
+    assert.equal(await page.evaluate(() => T), null);
+    for (const mode of ['rounds', 'stopwatch', 'tabata', 'stopwatch', 'rounds', 'tabata']) {
+      await page.locator(`[data-tab="${mode}"]`).tap();
+      assert.equal(await page.evaluate(() => S.mode), mode, `${name} reset then switch ${mode}`);
+    }
+    // 실행 중 다른 탭으로 이동하면 원래 타이머는 멈춘 위치를 유지한다.
+    await page.evaluate(() => { reset(); S.mode = 'tabata'; draw(); });
+    await tap();
+    const previous = await page.evaluate(() => elapsed());
+    await page.locator('[data-tab="rounds"]').tap();
+    assert.equal(await page.evaluate(() => S.mode), 'rounds');
+    await page.locator('[data-tab="tabata"]').tap();
+    assert.equal(await page.evaluate(() => S.mode), 'tabata');
+    assert.equal(await page.evaluate(() => T.run), false);
+    assert.ok(await page.evaluate(() => elapsed()) >= previous);
+    await tap();
+    assert.equal(await page.evaluate(() => T.run), true);
+    await page.locator('[data-tab="stopwatch"]').tap();
+    assert.equal(await page.evaluate(() => S.mode), 'stopwatch');
+    await page.evaluate(() => reset());
     // WebKit에서 pointerup이 빠져도 뒤따르는 click으로 멈춘다.
     await tap(); taps++;
     await page.evaluate(() => document.querySelector('#play').addEventListener('pointerup', e => e.stopImmediatePropagation(), { capture: true, once: true }));

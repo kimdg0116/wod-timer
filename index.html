@@ -144,7 +144,8 @@ input, textarea { -webkit-user-select:text; user-select:text; }
 [hidden] { display:none !important; }
 button { font-family:inherit; color:inherit; cursor:pointer; }
 button svg { pointer-events:none; }   /* 아이콘 대신 버튼이 누름을 받는다 */
-#play { touch-action:none; flex-shrink:0; }   /* 버튼 위의 작은 손 떨림을 스크롤로 처리하지 않는다 */
+#play { touch-action:none; flex-shrink:0; }
+.tabs button { touch-action:none; }   /* 버튼 위의 작은 손 떨림을 스크롤로 처리하지 않는다 */
 #playLand { touch-action:none; flex-shrink:0; display:none; }
 #resetLand { display:none; }
 body.run .upd { display:none; }       /* 운동 중엔 새 버전 버튼이 버튼을 가리지 않게 */
@@ -195,7 +196,7 @@ body.run .upd { display:none; }       /* 운동 중엔 새 버전 버튼이 버�
 .tabs button { flex:1; max-width:160px; display:flex; flex-direction:column; align-items:center; gap:1px; padding:5px 0 3px; border:0; border-radius:14px; background:none; color:var(--mute); font-size:var(--tf); font-weight:700; }
 .tabs button svg { width:var(--ti); height:var(--ti); }
 .tabs button.on { background:var(--soft); color:var(--acc); }
-body.run .tabs button:not(.on) { opacity:.35; }
+/* 실행 중에도 다른 모드로 이동할 수 있다. 떠나는 모드의 시간은 일시정지해 유지한다. */
 /* 가로 (운동하면서 2~5m 밖에서 보는 화면): 화면 전체가 지금 구간 색, 그 위에 큰 숫자 하나.
    위는 얇은 머리줄(제목·총 시간 | 구간 이름 | 시작), 아래는 차콜 띠 하나(남은 라운드 | 다음 구간 칩 | 남은 사이클).
    탭·설정·편집은 숨긴다 (바꾸려면 세로로). 조작 버튼은 회전 때 DOM에서 옮기지 않는다 */
@@ -334,7 +335,7 @@ select { width:100%; padding:9px 10px; font:inherit; font-size:15px; border:1px 
 <button type="button" id="upd" class="upd" hidden>새 버전이 있습니다 · 눌러서 새로고침</button>
 
 <script>
-const APP_VERSION = '26.11.06-17';                                      // 올릴 때마다 version.json · sw.js 와 같이 올린다
+const APP_VERSION = '26.11.07-1';                                      // 올릴 때마다 version.json · sw.js 와 같이 올린다
 const $ = s => document.querySelector(s);
 const esc = s => String(s).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
 const copy = o => JSON.parse(JSON.stringify(o));
@@ -410,6 +411,7 @@ const ICON = {
 
 /* ── 타이머: 시작 시각과 쌓인 시간으로 계산 (화면이 잠깐 멈췄다 와도 시간이 밀리지 않는다) ── */
 let T = null, loop = 0, lastFrame = null;
+const modeTimers = Object.create(null);
 const now = () => Date.now() / 1000;
 const elapsed = () => T.acc + (T.run ? now() - T.t0 : 0);
 function toggle() {
@@ -423,7 +425,14 @@ function toggle() {
   else { T.t0 = now(); T.run = true; }
   run();
 }
-function reset() { T = null; run(); }
+function reset() { T = null; modeTimers[S.mode] = null; run(); }
+function switchMode(mode) {
+  if (!MODES[mode] || mode === S.mode) return;
+  if (T && T.run) { T.acc = elapsed(); T.run = false; }
+  modeTimers[S.mode] = T;
+  S.mode = mode; T = modeTimers[mode] || null;
+  save(); run();
+}
 function run() { lastFrame = null; clearInterval(loop); if (T && T.run) loop = setInterval(frame, 50); wake(!!(T && T.run)); frame(); }
 function frame() {
   if (T) {
@@ -483,7 +492,9 @@ function draw() {
   }
   text($('#playLab'), done ? '다시 시작' : running ? '일시정지' : T ? '계속' : '시작');
   $('#resetBtn').hidden = $('#resetLand').hidden = !T || T.run; $('#editBtn').hidden = !!T;    // 되돌리기는 멈춘 뒤에만 (운동 중 잘못 눌러도 안 지워지게)
-  put($('#tabs'), Object.keys(MODES).map(m => `<button type="button" class="${m === S.mode ? 'on' : ''}" data-tab="${m}">${ICON[m]}${MODES[m].name}</button>`).join(''));
+  // 탭은 처음 한 번만 만든다. 전환할 때도 누름 대상이 사라지지 않게 유지한다.
+  if (!$('#tabs').children.length) $('#tabs').innerHTML = Object.keys(MODES).map(m => `<button type="button" data-tab="${m}">${ICON[m]}${MODES[m].name}</button>`).join('');
+  for (const tab of $('#tabs').children) tab.classList.toggle('on', tab.dataset.tab === S.mode);
 }
 
 /* ── 화면 켜 두기: 운동 중에는 폰 화면이 꺼지지 않게 ── */
@@ -729,7 +740,7 @@ const ACT = {
 };
 // 시작·일시정지: iOS의 지연 click 대신 손가락을 뗄 때 처리한다.
 // 구간 전환 중에도 같은 버튼이 포인터를 유지한다. 끌기·취소·다중 터치는 실행하지 않는다.
-for (const button of [$('#play'), $('#playLand')]) {
+function bindTap(button, activate) {
   let press = null, ignoreClickUntil = 0;
   button.addEventListener('pointerdown', ev => {
     if (ev.pointerType === 'mouse') return;
@@ -746,7 +757,7 @@ for (const button of [$('#play'), $('#playLand')]) {
     const p = press; press = null; ignoreClickUntil = performance.now() + 800;
     ev.preventDefault();
     const r = button.getBoundingClientRect();
-    if (!p.moved && ev.clientX >= r.left && ev.clientX <= r.right && ev.clientY >= r.top && ev.clientY <= r.bottom) toggle();
+    if (!p.moved && ev.clientX >= r.left && ev.clientX <= r.right && ev.clientY >= r.top && ev.clientY <= r.bottom) activate();
   });
   button.addEventListener('pointercancel', () => { press = null; });
   button.addEventListener('lostpointercapture', () => { press = null; });
@@ -757,15 +768,14 @@ for (const button of [$('#play'), $('#playLand')]) {
     }
   });
 }
+for (const button of [$('#play'), $('#playLand')]) bindTap(button, toggle);
 document.addEventListener('click', ev => {
   const b = ev.target.closest('[data-act],[data-tab],[data-set],[data-kind],[data-pickcolor],[data-pc]');
   if (!b) { if (ev.target.classList.contains('panel')) back(); return; }
   const d = b.dataset;
   if (d.act) ACT[d.act](b);
   else if (d.tab) {
-    if (d.tab === S.mode) return;
-    if (T && !T.done) { toast('일시정지하고 처음으로 되돌린 뒤 바꿀 수 있어요'); return; }
-    S.mode = d.tab; save(); reset();
+    switchMode(d.tab);
   }
   else if (d.set) {
     S.set[d.set] = d.v === '1'; save();
@@ -805,6 +815,7 @@ LAND.addEventListener('change', layout);
 layout();
 
 setTheme(theme); setColor(color); draw();
+for (const tab of $('#tabs').children) bindTap(tab, () => switchMode(tab.dataset.tab));
 
 // ── 확대 막기: 두 손가락 핀치, 빈 곳 더블탭 (도시메트리 캘린더·웬들러와 같은 방식) ──
 (() => {
