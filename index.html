@@ -290,16 +290,17 @@ select { width:100%; padding:9px 10px; font:inherit; font-size:15px; border:1px 
   <div class="settings-row" id="silentRow"><div><b>무음 모드에서도 소리</b><p>켜 두면 폰으로 듣던 음악이 멈출 수 있어요</p></div><div class="seg" id="setSilent"></div></div>
   <div class="settings-row" id="vibRow"><div><b>진동</b><p>구간이 바뀔 때</p></div><div class="seg" id="setVib"></div></div>
   <p class="ver" id="ver"></p>
-  <p class="ver" id="diag" style="margin-top:2px;font-family:var(--font-body)"></p>
   <p class="ver" style="margin-top:2px">© Dongkyu Kim</p>
 </div></div>
 <div id="edit" class="panel" role="dialog" aria-modal="true" hidden><div class="sheet" id="editSheet"></div></div>
 <div id="toast"></div>
+<div id="diag" style="position:fixed;left:0;right:0;top:calc(env(safe-area-inset-top) + 64px);z-index:50;padding:6px;background:#000;color:#fff;font:600 13px/1.4 -apple-system,sans-serif;text-align:center;pointer-events:none"></div>
+<div id="diagB" style="position:fixed;left:0;right:0;bottom:0;height:6px;z-index:50;background:#f0f;pointer-events:none"></div>
 <div id="sap" style="position:fixed;top:0;left:0;visibility:hidden;pointer-events:none;padding:env(safe-area-inset-top) env(safe-area-inset-right) env(safe-area-inset-bottom) env(safe-area-inset-left)"></div>
 <button type="button" id="upd" class="upd" hidden>새 버전이 있습니다 · 눌러서 새로고침</button>
 
 <script>
-const APP_VERSION = '26.11.06-6';                                      // 올릴 때마다 version.json · sw.js 와 같이 올린다
+const APP_VERSION = '26.11.06-7';                                      // 올릴 때마다 version.json · sw.js 와 같이 올린다
 const $ = s => document.querySelector(s);
 const esc = s => String(s).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
 const copy = o => JSON.parse(JSON.stringify(o));
