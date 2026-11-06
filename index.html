@@ -119,18 +119,22 @@ button { font-family:inherit; color:inherit; cursor:pointer; }
 @font-face { font-family:"SUIT Variable"; src:url(https://cdn.jsdelivr.net/gh/sun-typeface/SUIT@2.0.5/fonts/variable/woff2/SUIT-Variable.woff2) format("woff2-variations"); font-weight:100 900; font-display:block; }
 .num { font-family:var(--num); font-variant-numeric:tabular-nums; }
 
-/* 타이머 화면: 위 바 / 지금 구간 / 다음 구간 / 버튼 / 탭 */
+/* 타이머 화면: 위 바 / 지금 구간 / 다음 구간 / 버튼 / 탭.
+   판 색은 화면 끝(다이나믹 아일랜드·홈 막대 아래)까지 채우고 글자·버튼만 안전 영역 안에 둔다.
+   크기는 vmin 으로 폰·패드에 맞춘다 (아이폰은 최솟값 그대로, 패드에서 커진다) */
+:root { --sl:env(safe-area-inset-left, 0px); --sr:env(safe-area-inset-right, 0px); --st:env(safe-area-inset-top, 0px); --sb:env(safe-area-inset-bottom, 0px);
+  --ib:clamp(42px, 6vmin, 60px); --t1:clamp(17px, 2.4vmin, 26px); --sn:clamp(54px, 9vmin, 120px); --s2:clamp(15px, 2.1vmin, 24px);
+  --play:clamp(86px, 13vmin, 170px); --ti:clamp(24px, 3.4vmin, 34px); --tf:clamp(11.5px, 1.6vmin, 16px); }
 #app { position:fixed; inset:0; display:grid; grid-template-columns:minmax(0, 1fr);
-  grid-template-rows:auto minmax(0, 1fr) clamp(84px, 13dvh, 130px) auto auto; grid-template-areas:"top" "cur" "nxt" "ctl" "tabs";
-  padding:0 env(safe-area-inset-right, 0px) 0 env(safe-area-inset-left, 0px); }
-.top { grid-area:top; display:grid; grid-template-columns:1fr auto 1fr; align-items:center; gap:8px; padding:calc(6px + env(safe-area-inset-top, 0px)) 12px 8px; }
+  grid-template-rows:auto minmax(0, 1fr) clamp(84px, 14dvh, 220px) auto auto; grid-template-areas:"top" "cur" "nxt" "ctl" "tabs"; }
+.top { grid-area:top; display:grid; grid-template-columns:1fr auto 1fr; align-items:center; gap:8px; padding:calc(6px + var(--st)) max(12px, var(--sr)) 8px max(12px, var(--sl)); }
 .top .r { display:flex; justify-content:flex-end; gap:6px; }
-.ibtn { display:grid; place-items:center; width:42px; height:42px; padding:0; border:0; border-radius:50%; background:none; color:var(--acc); }
-.ibtn svg { width:24px; height:24px; }
+.ibtn { display:grid; place-items:center; width:var(--ib); height:var(--ib); padding:0; border:0; border-radius:50%; background:none; color:var(--acc); }
+.ibtn svg { width:57%; height:57%; }
 .ibtn.ring { box-shadow:inset 0 0 0 2px currentColor; }
 .ttl { text-align:center; line-height:1.2; white-space:nowrap; }
-.ttl b { display:block; font-size:17px; font-weight:800; }
-.ttl span { font-size:17px; font-weight:500; color:var(--mute); letter-spacing:.03em; }
+.ttl b { display:block; font-size:var(--t1); font-weight:800; }
+.ttl span { font-size:var(--t1); font-weight:500; color:var(--mute); letter-spacing:.03em; }
 .pane { position:relative; container-type:size; display:flex; flex-direction:column; align-items:center; justify-content:center; overflow:hidden;
   background:var(--pc, var(--card)); color:var(--ink); }
 .pane.off { background:var(--card); color:var(--mute); }
@@ -144,36 +148,39 @@ button { font-family:inherit; color:inherit; cursor:pointer; }
 #cur.long .dig { font-size:min(30cqw, 50cqh); }
 #nxt .lab { font-size:min(5.6cqw, 23cqh); font-weight:700; }
 #nxt .dig { font-size:min(17cqw, 54cqh); }
-.ctl { grid-area:ctl; display:grid; grid-template-columns:1fr auto 1fr; align-items:center; padding:12px 12px 6px; }
+.ctl { grid-area:ctl; display:grid; grid-template-columns:1fr auto 1fr; align-items:center; padding:12px max(12px, var(--sr)) 6px max(12px, var(--sl)); }
 .stat { text-align:center; min-width:0; }
-.stat b { display:block; font-family:var(--num); font-size:54px; font-weight:600; line-height:1; color:color-mix(in srgb, var(--pc) var(--pcw), var(--fg)); }
-.stat span { display:block; margin-top:6px; font-size:15px; font-weight:700; white-space:nowrap; }
+.stat b { display:block; font-family:var(--num); font-size:var(--sn); font-weight:600; line-height:1; color:color-mix(in srgb, var(--pc) var(--pcw), var(--fg)); }
+.stat span { display:block; margin-top:6px; font-size:var(--s2); font-weight:700; white-space:nowrap; }
 .go { display:flex; flex-direction:column; align-items:center; gap:4px; }
-.play { display:grid; place-items:center; width:86px; height:86px; padding:0; border:0; border-radius:50%; background:var(--pc); color:var(--ink);
-  box-shadow:inset 0 0 0 6px var(--pc), inset 0 0 0 9px var(--ink); }
-.play svg { width:34px; height:34px; }
-.go span { font-size:15px; font-weight:800; color:color-mix(in srgb, var(--pc) var(--pcw), var(--fg)); }
-.tabs { grid-area:tabs; display:flex; justify-content:space-around; gap:6px; padding:6px 12px calc(6px + env(safe-area-inset-bottom, 0px)); border-top:1px solid var(--line); }
-.tabs button { flex:1; max-width:120px; display:flex; flex-direction:column; align-items:center; gap:1px; padding:6px 0 4px; border:0; border-radius:14px; background:none; color:var(--mute); font-size:11.5px; font-weight:700; }
-.tabs button svg { width:24px; height:24px; }
+.play { display:grid; place-items:center; width:var(--play); height:var(--play); padding:0; border:0; border-radius:50%; background:var(--pc); color:var(--ink);
+  box-shadow:inset 0 0 0 calc(var(--play) * .07) var(--pc), inset 0 0 0 calc(var(--play) * .105) var(--ink); }
+.play svg { width:40%; height:40%; }
+.go span { font-size:var(--s2); font-weight:800; color:color-mix(in srgb, var(--pc) var(--pcw), var(--fg)); }
+/* 탭: 아이폰이 홈 화면 앱에 크게 주는 바닥 여백을 다 쓰지 않는다 (홈 막대만 피할 만큼) */
+.tabs { grid-area:tabs; display:flex; justify-content:space-around; gap:6px; padding:4px max(12px, var(--sr)) max(4px, calc(var(--sb) - 18px)) max(12px, var(--sl)); border-top:1px solid var(--line); }
+.tabs button { flex:1; max-width:160px; display:flex; flex-direction:column; align-items:center; gap:1px; padding:5px 0 3px; border:0; border-radius:14px; background:none; color:var(--mute); font-size:var(--tf); font-weight:700; }
+.tabs button svg { width:var(--ti); height:var(--ti); }
 .tabs button.on { background:var(--soft); color:var(--acc); }
 body.run .tabs button:not(.on) { opacity:.35; }
-/* 가로: 왼쪽에 큰 숫자, 오른쪽에 다음 구간과 버튼. 운동 중엔 탭을 숨겨 숫자를 더 크게 */
+/* 가로: 왼쪽에 큰 숫자, 오른쪽에 다음 구간과 버튼. 운동 중엔 위 바·탭을 숨겨 숫자를 화면 가득 */
 @media (orientation:landscape) {
-  #app { grid-template-columns:minmax(0, 1fr) clamp(230px, 33vw, 400px); grid-template-rows:auto minmax(0, 1fr) auto auto;
+  :root { --sn:clamp(40px, 10vmin, 110px); --s2:clamp(13px, 2.4vmin, 22px); --play:clamp(70px, 17vmin, 160px); }
+  #app { grid-template-columns:minmax(0, 1fr) clamp(190px, 25vw, 380px); grid-template-rows:auto minmax(0, 1fr) auto auto;
     grid-template-areas:"top top" "cur nxt" "cur ctl" "tabs tabs"; }
-  .top { padding-top:max(4px, env(safe-area-inset-top, 0px)); padding-bottom:4px; }
-  #cur .lab { font-size:min(9cqw, 14cqh); }
-  #cur .dig { font-size:min(36cqw, 72cqh); }
-  #cur.long .dig { font-size:min(30cqw, 60cqh); }
-  #nxt .lab { font-size:min(10cqw, 15cqh); }
-  #nxt .dig { font-size:min(34cqw, 42cqh); }
-  .ctl { padding:10px 8px 8px; }
-  .stat b { font-size:42px; }
-  .stat span { font-size:13px; }
-  .play { width:74px; height:74px; }
-  body.run .tabs { display:none; }
-  body.run .ctl { padding-bottom:calc(8px + env(safe-area-inset-bottom, 0px)); }
+  .top { padding-top:max(4px, var(--st)); padding-bottom:4px; }
+  #cur { padding:0 0 var(--sb) var(--sl); }
+  #nxt { padding-right:var(--sr); }
+  #cur .lab { font-size:min(7cqw, 12cqh); }
+  #cur .dig { font-size:min(38cqw, 80cqh); }
+  #cur.long .dig { font-size:min(30cqw, 66cqh); }
+  #nxt .lab { font-size:min(10cqw, 14cqh); }
+  #nxt .dig { font-size:min(36cqw, 46cqh); }
+  .ctl { grid-template-columns:1fr 1fr; grid-template-areas:"r y" "go go"; row-gap:8px; padding:10px max(8px, var(--sr)) max(8px, var(--sb)) 8px; }
+  #statR { grid-area:r; } #statY { grid-area:y; } .go { grid-area:go; }
+  body.going .top, body.going .tabs { display:none; }
+  body.going #cur { padding-top:var(--st); }
+  body.going #nxt { padding-top:var(--st); }
 }
 
 /* 시트 (설정 · 타이머 편집) */
@@ -271,7 +278,7 @@ select { width:100%; padding:9px 10px; font:inherit; font-size:15px; border:1px 
   <div class="settings-row"><div><b>똑딱 소리</b><p>1초마다 작게</p></div><div class="seg" id="setTick"></div></div>
   <div class="settings-row"><div><b>음성 안내</b><p>구간 이름을 말해 줘요</p></div><div class="seg" id="setVoice"></div></div>
   <div class="settings-row col" id="voiceRow"><div><b>목소리</b></div><div style="display:flex;gap:8px"><select id="voiceSel"></select><button type="button" class="pill" data-act="tryVoice">들어보기</button></div></div>
-  <div class="settings-row" id="loudRow"><div><b>무음 모드에서도 소리</b><p>켜면 듣던 음악이 멈출 수 있어요</p></div><div class="seg" id="setLoud"></div></div>
+  <div class="settings-row" id="silentRow"><div><b>무음 모드에서도 소리</b><p>켜 두면 폰으로 듣던 음악이 멈출 수 있어요</p></div><div class="seg" id="setSilent"></div></div>
   <div class="settings-row" id="vibRow"><div><b>진동</b><p>구간이 바뀔 때</p></div><div class="seg" id="setVib"></div></div>
   <p class="ver" id="ver"></p>
   <p class="ver" style="margin-top:2px">© Dongkyu Kim</p>
@@ -281,7 +288,7 @@ select { width:100%; padding:9px 10px; font:inherit; font-size:15px; border:1px 
 <button type="button" id="upd" class="upd" hidden>새 버전이 있습니다 · 눌러서 새로고침</button>
 
 <script>
-const APP_VERSION = '26.11.06-3';                                      // 올릴 때마다 version.json · sw.js 와 같이 올린다
+const APP_VERSION = '26.11.06-4';                                      // 올릴 때마다 version.json · sw.js 와 같이 올린다
 const $ = s => document.querySelector(s);
 const esc = s => String(s).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
 const copy = o => JSON.parse(JSON.stringify(o));
@@ -334,7 +341,7 @@ function load() {
   let s = {}; try { s = JSON.parse(localStorage.getItem(KEY)) || {}; } catch (e) {}
   const cfg = {}; for (const m in MODES) cfg[m] = { ...MODES[m].def, col: {}, ...(s.cfg && s.cfg[m]) };
   return { mode: MODES[s.mode] ? s.mode : 'tabata', cfg, saved: Array.isArray(s.saved) ? s.saved : [],
-    set: { sound: true, kind: 'beep', vol: 1, tick: true, voice: false, voiceURI: '', loud: false, vib: true, ...s.set } };
+    set: { sound: true, kind: 'beep', vol: 1, tick: true, voice: false, voiceURI: '', silent: true, vib: true, ...s.set } };   // silent: 무음 모드에서도 소리 (처음엔 켬)
 }
 function save() { try { localStorage.setItem(KEY, JSON.stringify(S)); } catch (e) {} }
 const cfg = () => S.cfg[S.mode];
@@ -394,6 +401,7 @@ function draw() {
   const c = cfg(), M = MODES[S.mode], sg = T ? T.segs : plan(S.mode, c), e = T ? elapsed() : 0, total = totalOf(sg);
   const done = T && T.done, i = T ? Math.max(T.i, 0) : 0, s = sg[i], n = sg[i + 1];
   document.body.classList.toggle('run', !!T);
+  document.body.classList.toggle('going', !!(T && T.run));
   $('#mname').textContent = M.name;
   $('#total').textContent = S.mode === 'stopwatch' ? '' : fmt(done ? total : total - e);
   const pane = (id, lab, dig, pc) => { const p = $(id); p.classList.toggle('off', !pc); p.style.setProperty('--pc', pc || ''); $(id + 'Lab').textContent = lab; $(id + 'Dig').innerHTML = dig.replace(/\d/g, '<i>$&</i>'); };
@@ -433,21 +441,29 @@ async function wake(on) {
   } catch (e) { lock = null; }
 }
 
-/* ── 소리: 파일 없이 Web Audio 로 만든다. iOS 는 시작 버튼을 누를 때 소리를 깨워야 한다 ── */
+/* ── 소리: 파일 없이 Web Audio 로 만든다 (소리 파일이 따로 없는 게 정상).
+   아이폰은 웹 소리를 기본으로 '주변음'으로 다뤄서 무음 모드면 안 난다. 'playback' 으로 바꿔야 나는데,
+   소리를 처음 만들기 전에 정해야 따른다 - 그래서 페이지를 열자마자 정하고, 설정을 바꾸면 소리 엔진을 새로 만든다.
+   그리고 시작 버튼을 누를 때 빈 소리를 한 번 내서 소리를 깨운다 ── */
 let AC = null;
+function setSession() { try { if (navigator.audioSession) navigator.audioSession.type = S.set.silent ? 'playback' : 'auto'; } catch (e) {} }
+setSession();
 function unlockAudio() {
-  try { if (navigator.audioSession) navigator.audioSession.type = S.set.loud ? 'playback' : 'auto'; } catch (e) {}
-  if (!AC) { const A = window.AudioContext || window.webkitAudioContext; if (A) AC = new A(); }
+  if (!AC) {
+    const A = window.AudioContext || window.webkitAudioContext;
+    if (A) { AC = new A(); const s = AC.createBufferSource(); s.buffer = AC.createBuffer(1, 1, 22050); s.connect(AC.destination); s.start(0); }
+  }
   if (AC && AC.state !== 'running') AC.resume().catch(() => {});
   if (S.set.voice && window.speechSynthesis && !unlockAudio.v) { unlockAudio.v = 1; speechSynthesis.speak(new SpeechSynthesisUtterance(' ')); }
 }
 function tone(f, dur, o = {}) {
   if (!AC) return;
-  const t = AC.currentTime + (o.at || 0), v = S.set.vol * (o.v || .5), g = AC.createGain();
+  const t = AC.currentTime + (o.at || 0), v = S.set.vol * (o.v || .5), g = AC.createGain(), parts = o.parts || [[1, 1]];
+  const sum = parts.reduce((a, p) => a + p[1], 0);                     // 배음을 합쳐도 최대 크기를 넘지 않게 (넘으면 소리가 깨진다)
   g.connect(AC.destination);
-  for (const [mul, amp] of o.parts || [[1, 1]]) {
+  for (const [mul, amp] of parts) {
     const os = AC.createOscillator(), pg = AC.createGain();
-    os.type = o.wave || 'sine'; os.frequency.value = f * mul; pg.gain.value = amp;
+    os.type = o.wave || 'sine'; os.frequency.value = f * mul; pg.gain.value = amp / sum;
     os.connect(pg).connect(g);
     if (o.vib) { const l = AC.createOscillator(), lg = AC.createGain(); l.frequency.value = o.vib; lg.gain.value = f * mul * .03; l.connect(lg).connect(os.frequency); l.start(t); l.stop(t + dur + .05); }
     os.start(t); os.stop(t + dur + .05);
@@ -576,13 +592,13 @@ function setColor(id) {
 }
 function drawSettings() {
   const st = S.set, onoff = k => `<button type="button" class="${st[k] ? 'on' : ''}" data-set="${k}" data-v="1">켬</button><button type="button" class="${st[k] ? '' : 'on'}" data-set="${k}" data-v="0">끔</button>`;
-  for (const [id, k] of [['#setSound', 'sound'], ['#setTick', 'tick'], ['#setVoice', 'voice'], ['#setLoud', 'loud'], ['#setVib', 'vib']]) $(id).innerHTML = onoff(k);
+  for (const [id, k] of [['#setSound', 'sound'], ['#setTick', 'tick'], ['#setVoice', 'voice'], ['#setSilent', 'silent'], ['#setVib', 'vib']]) $(id).innerHTML = onoff(k);
   $('#setKind').innerHTML = Object.keys(SND).map(k => `<button type="button" class="pill ${k === st.kind ? 'on' : ''}" data-kind="${k}">${SND[k].name}</button>`).join('');
   $('#setVol').value = st.vol;
   const vs = koVoices();
   $('#voiceRow').hidden = !st.voice;
   $('#voiceSel').innerHTML = vs.length ? vs.map(v => `<option value="${esc(v.voiceURI)}"${v.voiceURI === st.voiceURI ? ' selected' : ''}>${esc(v.name)}</option>`).join('') : '<option>기본 목소리</option>';
-  $('#loudRow').hidden = !navigator.audioSession;                       // iOS 17 이상 사파리에만 있다
+  $('#silentRow').hidden = !navigator.audioSession;                       // iOS 17 이상 사파리에만 있다
   $('#vibRow').hidden = !navigator.vibrate;                             // 안드로이드에만 있다
 }
 if (window.speechSynthesis) speechSynthesis.addEventListener('voiceschanged', () => { if (!$('#settings').hidden) drawSettings(); });
@@ -640,7 +656,12 @@ document.addEventListener('click', ev => {
     if (T && !T.done) { toast('일시정지하고 처음으로 되돌린 뒤 바꿀 수 있어요'); return; }
     S.mode = d.tab; save(); reset();
   }
-  else if (d.set) { S.set[d.set] = d.v === '1'; save(); if (d.set === 'voice' || d.set === 'loud') unlockAudio(); drawSettings(); }
+  else if (d.set) {
+    S.set[d.set] = d.v === '1'; save();
+    if (d.set === 'silent') { setSession(); if (AC) { AC.close().catch(() => {}); AC = null; } unlockAudio(); tone(...SND[S.set.kind].count); }
+    if (d.set === 'voice') unlockAudio();
+    drawSettings();
+  }
   else if (d.kind) { S.set.kind = d.kind; save(); unlockAudio(); tone(...SND[d.kind].go); drawSettings(); }
   else if (d.pickcolor) setColor(d.pickcolor);
   else if (d.pc) { E.pc = d.pc; b.parentElement.querySelectorAll('button').forEach(x => { x.innerHTML = x === b ? ICON.check : ''; }); }
