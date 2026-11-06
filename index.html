@@ -163,33 +163,33 @@ button { font-family:inherit; color:inherit; cursor:pointer; }
 .tabs button svg { width:var(--ti); height:var(--ti); }
 .tabs button.on { background:var(--soft); color:var(--acc); }
 body.run .tabs button:not(.on) { opacity:.35; }
-#nxtWord { display:none; }
-/* 가로: TimerPlus 처럼 [위 띠: 되돌리기·제목 | 구간 이름 | 시작] / 큰 숫자 / [아래 띠: 남은 라운드 | 다음 구간 | 남은 사이클].
-   화면 전체를 지금 구간 색으로 채우고 탭·설정·편집은 숨긴다 (바꾸려면 세로로). 요소 자리 옮기기는 layout() */
+/* 가로 (운동하면서 2~5m 밖에서 보는 화면): 화면 전체가 지금 구간 색, 그 위에 큰 숫자 하나.
+   위는 얇은 머리줄(제목·총 시간 | 구간 이름 | 시작), 아래는 차콜 띠 하나(남은 라운드 | 다음 구간 칩 | 남은 사이클).
+   탭·설정·편집은 숨긴다 (바꾸려면 세로로). 요소 자리 옮기기는 layout() */
 @media (orientation:landscape) {
   #app { grid-template-rows:auto minmax(0, 1fr) auto; grid-template-areas:"top" "cur" "ctl"; background:var(--now); color:var(--ink); }
-  .tabs, .top [data-act=settings], #editBtn, #playLab, .stat span { display:none !important; }
-  .top { grid-template-columns:1fr auto 1fr; height:calc(20vh + var(--st)); padding:var(--st) 16px 0; background:color-mix(in srgb, var(--now) 62%, #fff); }
-  .top .l { display:flex; align-items:center; gap:2vh; min-width:0; }
-  .ttl { display:flex; align-items:baseline; gap:.35em; text-align:left; color:var(--ink); }
-  .ttl b, .ttl span { font-size:5.4vh; color:inherit; }
-  .ttl span { font-family:var(--num); font-weight:700; }
-  .top .lab { max-width:none; overflow:visible; font-size:13vh; color:var(--ink); }
+  .tabs, .top [data-act=settings], #editBtn, #playLab { display:none !important; }
+  .top { grid-template-columns:1fr auto 1fr; padding:max(8px, var(--st)) 16px 0; background:none; }
+  .top .l { display:flex; align-items:center; gap:2.4vh; min-width:0; }
+  .ttl { display:flex; align-items:baseline; gap:.35em; text-align:left; color:var(--ink); opacity:.62; }
+  .ttl b, .ttl span { font-size:4.6vh; color:inherit; }
+  .ttl span { font-family:var(--num); font-weight:600; }
+  .top .lab { max-width:none; overflow:visible; font-size:12vh; line-height:1.05; color:var(--ink); }
   .top .r { justify-content:flex-end; }
-  .top .ibtn.ring, .top .play { width:15vh; height:15vh; background:#222; color:var(--now); box-shadow:none; }
-  .top .play svg { width:42%; height:42%; }
+  .top .ibtn.ring, .top .play { width:13vh; height:13vh; background:var(--bg-top); color:var(--now); box-shadow:none; }
+  .top .play svg { width:40%; height:40%; }
   #cur { padding:0 var(--sr) 0 var(--sl); background:none; }
-  #cur .dig { font-size:min(38cqw, 100cqh); }
-  #cur.long .dig { font-size:min(29cqw, 100cqh); }
-  .ctl { grid-template-columns:auto minmax(0, 1fr) auto; height:18vh; padding:0; }
-  .stat { display:grid; place-items:center; min-width:22vh; height:100%; padding:0 2vh; background:#222; }
-  .stat b { font-size:13vh; color:var(--pc); }
-  .go { display:grid; grid-template-columns:1fr 1.7fr; align-items:stretch; height:100%; gap:0; }
-  #nxtWord { display:grid !important; place-items:center; font-size:12vh; font-weight:800; }
-  #nxt { grid-area:auto; flex-direction:row; }
-  #nxt .lab, #nxt .dig { font-size:min(62cqh, 11cqw); }
-  #nxt .lab { font-weight:800; }
-  #nxt .dig:not(:empty)::before { content:':'; }
+  #cur .dig { font-size:min(37cqw, 90cqh); margin-bottom:5cqh; }   /* Oswald 숫자는 줄 상자 아래쪽에 앉아서 조금 올린다 */
+  #cur.long .dig { font-size:min(29cqw, 92cqh); }
+  .ctl { grid-template-columns:1fr 2.6fr 1fr; height:calc(18vh + var(--sb) * .4); padding:0 max(8px, var(--sr)) calc(var(--sb) * .4) max(8px, var(--sl)); background:var(--bg-top); color:var(--fg); }
+  .stat b { font-size:12vh; line-height:.95; }
+  .stat span { margin-top:.4vh; font-size:2.8vh; color:var(--mute); }
+  .go { display:flex; align-items:stretch; height:100%; padding:1.8vh 0; }
+  #nxt { flex:1; flex-direction:row; align-items:center; justify-content:center; gap:2.4vh; border-radius:1.8vh; }
+  #nxt::before { content:'다음'; font-size:3.4vh; font-weight:700; opacity:.6; }
+  #nxt.off::before { content:none; }
+  #nxt .lab { max-width:none; font-size:min(50cqh, 7cqw); }
+  #nxt .dig { font-size:min(60cqh, 9cqw); }
 }
 
 /* 시트 (설정 · 타이머 편집) */
@@ -271,7 +271,7 @@ select { width:100%; padding:9px 10px; font:inherit; font-size:15px; border:1px 
   <section class="pane" id="nxt"><div class="lab" id="nxtLab"></div><div class="dig" id="nxtDig"></div></section>
   <div class="ctl">
     <div class="stat" id="statR"><b></b><span>남은 라운드</span></div>
-    <div class="go"><button type="button" class="play" id="play" data-act="play" aria-label="시작"></button><span id="playLab"></span><span id="nxtWord">다음</span></div>
+    <div class="go"><button type="button" class="play" id="play" data-act="play" aria-label="시작"></button><span id="playLab"></span></div>
     <div class="stat" id="statY"><b></b><span>남은 사이클</span></div>
   </div>
   <nav class="tabs" id="tabs"></nav>
@@ -294,13 +294,10 @@ select { width:100%; padding:9px 10px; font:inherit; font-size:15px; border:1px 
 </div></div>
 <div id="edit" class="panel" role="dialog" aria-modal="true" hidden><div class="sheet" id="editSheet"></div></div>
 <div id="toast"></div>
-<div id="diag" style="position:fixed;left:0;right:0;top:calc(env(safe-area-inset-top) + 64px);z-index:50;padding:6px;background:#000;color:#fff;font:600 13px/1.4 -apple-system,sans-serif;text-align:center;pointer-events:none"></div>
-<div id="diagB" style="position:fixed;left:0;right:0;bottom:0;height:6px;z-index:50;background:#f0f;pointer-events:none"></div>
-<div id="sap" style="position:fixed;top:0;left:0;visibility:hidden;pointer-events:none;padding:env(safe-area-inset-top) env(safe-area-inset-right) env(safe-area-inset-bottom) env(safe-area-inset-left)"></div>
 <button type="button" id="upd" class="upd" hidden>새 버전이 있습니다 · 눌러서 새로고침</button>
 
 <script>
-const APP_VERSION = '26.11.06-8';                                      // 올릴 때마다 version.json · sw.js 와 같이 올린다
+const APP_VERSION = '26.11.06-9';                                      // 올릴 때마다 version.json · sw.js 와 같이 올린다
 const $ = s => document.querySelector(s);
 const esc = s => String(s).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
 const copy = o => JSON.parse(JSON.stringify(o));
@@ -639,7 +636,7 @@ const ACT = {
   play: toggle,
   reset,
   edit: openEdit,
-  settings: () => { showPanel('#settings', true); diag(); },
+  settings: () => showPanel('#settings', true),
   closeSettings: () => showPanel('#settings', false),
   theme: () => setTheme(THEMES[(THEMES.indexOf(theme) + 1) % THEMES.length]),
   tryVoice: () => { unlockAudio(); say('운동'); },
@@ -698,17 +695,11 @@ document.addEventListener('visibilitychange', () => {
 const LAND = matchMedia('(orientation: landscape)');
 function layout() {
   const top = $('.top'), L = $('.top .l'), R = $('.top .r'), go = $('.go');
-  if (LAND.matches) { L.append($('#resetBtn'), $('.ttl')); top.insertBefore($('#curLab'), R); R.append($('#play')); go.prepend($('#nxtWord')); go.append($('#nxt')); }
+  if (LAND.matches) { L.append($('#resetBtn'), $('.ttl')); top.insertBefore($('#curLab'), R); R.append($('#play')); go.append($('#nxt')); }
   else { top.insertBefore($('.ttl'), R); R.prepend($('#resetBtn')); $('#cur').prepend($('#curLab')); go.prepend($('#play')); $('#app').insertBefore($('#nxt'), $('.ctl')); }
 }
-// 임시 진단: 실기기 화면 크기를 설정 시트 맨 아래에 보여 준다 (바닥 여백 원인 찾은 뒤 지운다)
-function diag() {
-  const sa = getComputedStyle($('#sap')), r = $('#app').getBoundingClientRect(), vv = window.visualViewport || {};
-  $('#diag').textContent = `win ${innerWidth}x${innerHeight} scr ${screen.width}x${screen.height} vv ${Math.round(vv.width)}x${Math.round(vv.height)} doc ${document.documentElement.clientHeight} app ${Math.round(r.height)} sa ${parseInt(sa.paddingTop)}/${parseInt(sa.paddingBottom)}/${parseInt(sa.paddingLeft)} st ${navigator.standalone}`;
-}
-LAND.addEventListener('change', () => { layout(); setTimeout(diag, 400); });
-addEventListener('resize', () => setTimeout(diag, 100));
-layout(); diag();
+LAND.addEventListener('change', layout);
+layout();
 
 setTheme(theme); setColor(color); draw();
 
