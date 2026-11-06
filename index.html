@@ -198,7 +198,10 @@ body.modal-open { overflow:hidden; }
 .frow .chev { flex:none; width:16px; height:16px; color:var(--mute); }
 .frow .ibtn { width:36px; height:36px; color:var(--mute); }
 .frow .ibtn svg { width:20px; height:20px; }
-.sub { width:100%; margin-top:14px; padding:12px; font-size:15px; font-weight:700; border:1.5px dashed var(--line); border-radius:12px; background:none; color:var(--acc); }
+.addrow { display:flex; gap:8px; padding:12px 0 4px; border-top:1px solid var(--line); }
+.sec + .addrow { border-top:0; }
+.addrow input { flex:1; min-width:0; padding:9px 12px; font:inherit; font-size:16px; border:1px solid var(--line); border-radius:10px; background:var(--bg); color:var(--fg); }
+.pill.del { border-color:var(--pr); color:var(--pr); }
 /* 시간 고르기 바퀴 */
 .wheels { display:flex; justify-content:center; align-items:center; gap:10px; padding:18px 0 12px; }
 .wheels > span { font-size:17px; font-weight:700; }
@@ -277,7 +280,7 @@ select { width:100%; padding:9px 10px; font:inherit; font-size:15px; border:1px 
 <button type="button" id="upd" class="upd" hidden>새 버전이 있습니다 · 눌러서 새로고침</button>
 
 <script>
-const APP_VERSION = '26.11.06-1';                                      // 올릴 때마다 version.json · sw.js 와 같이 올린다
+const APP_VERSION = '26.11.06-2';                                      // 올릴 때마다 version.json · sw.js 와 같이 올린다
 const $ = s => document.querySelector(s);
 const esc = s => String(s).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
 const copy = o => JSON.parse(JSON.stringify(o));
@@ -416,7 +419,7 @@ function draw() {
   $('#play').innerHTML = running ? ICON.pause : ICON.play;
   $('#play').setAttribute('aria-label', running ? '일시정지' : '시작');
   $('#playLab').textContent = done ? '다시 시작' : running ? '일시정지' : T ? '계속' : '시작';
-  $('#resetBtn').hidden = !T; $('#editBtn').hidden = !!T;
+  $('#resetBtn').hidden = !T || T.run; $('#editBtn').hidden = !!T;    // 되돌리기는 멈춘 뒤에만 (운동 중 잘못 눌러도 안 지워지게)
   $('#tabs').innerHTML = Object.keys(MODES).map(m => `<button type="button" class="${m === S.mode ? 'on' : ''}" data-tab="${m}">${ICON[m]}${MODES[m].name}</button>`).join('');
 }
 
@@ -487,6 +490,7 @@ let E = null;                                                          // { d: �
 const IH = 64;
 const shortT = s => s < 60 ? ':' + pad(s) : fmt(s);
 function valText(k, d) { return FIELDS[k].time ? (k === 'lap' && !d[k] ? '끔' : shortT(d[k])) : String(d[k]); }
+const defName = () => MODES[S.mode].name + (S.mode === 'stopwatch' ? '' : ' ' + fmt(totalOf(plan(S.mode, E.d))));
 function openEdit() { E = { d: copy(cfg()), f: null }; drawEdit(); showPanel('#edit', true); }
 function closeEdit(apply) {
   if (apply) { S.cfg[S.mode] = E.d; save(); }
@@ -500,9 +504,12 @@ function drawEdit() {
       <div class="sec"><span>인터벌</span>${S.mode === 'stopwatch' ? '' : `<span class="num">총 ${fmt(tot)}</span>`}</div>
       ${M.fields.map(k => { const F = FIELDS[k]; return `<button type="button" class="frow" data-act="pick" data-k="${k}" style="--pc:${colOf(d, k)}"><i class="dot"></i>
         <span class="t"><b>${F.name}</b><small>${typeof F.sub === 'function' ? F.sub(d) : F.sub}</small></span><span class="v">${valText(k, d)}</span>${ICON.chev}</button>`; }).join('')}
-      ${mine.length ? `<div class="sec"><span>내 타이머</span></div>` + mine.map(t => `<div class="frow"><button type="button" class="t" data-act="loadSaved" data-id="${t.id}"><b>${esc(t.name)}</b>
-        <small>${S.mode === 'stopwatch' ? '스톱워치' : '총 ' + fmt(totalOf(plan(t.mode, t.cfg)))}</small></button><button type="button" class="ibtn" data-act="delSaved" data-id="${t.id}" aria-label="${esc(t.name)} 지우기">${ICON.trash}</button></div>`).join('') : ''}
-      <button type="button" class="sub" data-act="addSaved">이 설정을 내 타이머에 추가</button>`;
+      <div class="sec"><span>내 타이머</span><span>${mine.length ? '누르면 불러와요' : '지금 설정에 이름을 붙여 저장해요'}</span></div>
+      ${mine.map(t => `<div class="frow"><button type="button" class="t" data-act="loadSaved" data-id="${t.id}"><b>${esc(t.name)}</b>
+        <small>${S.mode === 'stopwatch' ? '스톱워치' : '총 ' + fmt(totalOf(plan(t.mode, t.cfg)))}</small></button>${E.del === t.id
+        ? `<button type="button" class="pill del" data-act="delSaved" data-id="${t.id}">지우기</button>`
+        : `<button type="button" class="ibtn" data-act="askDel" data-id="${t.id}" aria-label="${esc(t.name)} 지우기">${ICON.trash}</button>`}</div>`).join('')}
+      <div class="addrow"><input id="newName" maxlength="30" enterkeyhint="done" placeholder="${esc(defName())}" aria-label="새 타이머 이름"><button type="button" class="pill on" data-act="addSaved">추가</button></div>`;
     return;
   }
   const k = E.f, F = FIELDS[k], v = d[k];
@@ -600,7 +607,7 @@ let toastTimer = 0;
 function toast(msg) { const t = $('#toast'); t.textContent = msg; t.classList.add('show'); clearTimeout(toastTimer); toastTimer = setTimeout(() => t.classList.remove('show'), 2200); }
 const ACT = {
   play: toggle,
-  reset: () => { if (T && T.run && !confirm('타이머를 멈추고 처음으로 되돌릴까요?')) return; reset(); },
+  reset,
   edit: openEdit,
   settings: () => showPanel('#settings', true),
   closeSettings: () => showPanel('#settings', false),
@@ -614,13 +621,13 @@ const ACT = {
     const k = E.f; E.d[k] = FIELDS[k].time ? wheelVal('wm') * 60 + wheelVal('ws') : wheelVal('wc');
     E.d.col = { ...E.d.col, [k]: E.pc }; E.f = null; drawEdit();
   },
-  addSaved: () => {
-    const name = (prompt('타이머 이름', MODES[S.mode].name + (S.mode === 'stopwatch' ? '' : ' ' + fmt(totalOf(plan(S.mode, E.d))))) || '').trim();
-    if (!name) return;
-    S.saved.push({ id: Date.now().toString(36), mode: S.mode, name: name.slice(0, 30), cfg: copy(E.d) }); save(); drawEdit(); toast(`'${name.slice(0, 30)}' 추가됨`);
+  addSaved: () => {                                                    // 이름 칸은 시트 안에 둔다. 앱 안 브라우저·일부 웹뷰는 prompt() 창을 띄우지 않고 멈춘다
+    const name = ($('#newName').value.trim() || defName()).slice(0, 30);
+    S.saved.push({ id: Date.now().toString(36), mode: S.mode, name, cfg: copy(E.d) }); save(); E.del = null; drawEdit(); toast(`'${name}' 추가됨`);
   },
   loadSaved: b => { const t = S.saved.find(x => x.id === b.dataset.id); if (!t) return; E.d = { ...MODES[S.mode].def, col: {}, ...copy(t.cfg) }; closeEdit(true); toast(`'${t.name}' 불러옴`); },
-  delSaved: b => { const t = S.saved.find(x => x.id === b.dataset.id); if (!t || !confirm(`'${t.name}' 을(를) 지울까요?`)) return; S.saved = S.saved.filter(x => x !== t); save(); drawEdit(); },
+  askDel: b => { E.del = b.dataset.id; drawEdit(); },                  // 휴지통 한 번 = 확인 버튼, 그걸 누르면 지운다 (confirm() 창도 안 쓴다)
+  delSaved: b => { const t = S.saved.find(x => x.id === b.dataset.id); if (!t) return; S.saved = S.saved.filter(x => x !== t); save(); E.del = null; drawEdit(); toast(`'${t.name}' 지움`); },
 };
 document.addEventListener('click', ev => {
   const b = ev.target.closest('[data-act],[data-tab],[data-set],[data-kind],[data-pickcolor],[data-pc]');
@@ -629,7 +636,7 @@ document.addEventListener('click', ev => {
   if (d.act) ACT[d.act](b);
   else if (d.tab) {
     if (d.tab === S.mode) return;
-    if (T && !T.done && !confirm('진행 중인 타이머를 끝내고 바꿀까요?')) return;
+    if (T && !T.done) { toast('일시정지하고 처음으로 되돌린 뒤 바꿀 수 있어요'); return; }
     S.mode = d.tab; save(); reset();
   }
   else if (d.set) { S.set[d.set] = d.v === '1'; save(); if (d.set === 'voice' || d.set === 'loud') unlockAudio(); drawSettings(); }
@@ -641,7 +648,8 @@ $('#setVol').addEventListener('input', function () { S.set.vol = +this.value; sa
 $('#setVol').addEventListener('change', () => { unlockAudio(); tone(...SND[S.set.kind].count); });
 $('#voiceSel').addEventListener('change', function () { S.set.voiceURI = this.value; save(); say('운동'); });
 addEventListener('keydown', ev => {                                   // 맥·키보드: 스페이스 = 시작/일시정지, Esc = 닫기
-  if (ev.key === 'Escape' && anyOpen()) { back(); syncHistory(); }
+  if (ev.key === 'Enter' && ev.target.id === 'newName') { ev.preventDefault(); ACT.addSaved(); }
+  else if (ev.key === 'Escape' && anyOpen()) { back(); syncHistory(); }
   else if (ev.key === ' ' && !anyOpen() && !/INPUT|SELECT|TEXTAREA/.test(ev.target.tagName)) { ev.preventDefault(); toggle(); }
 });
 document.addEventListener('visibilitychange', () => {
